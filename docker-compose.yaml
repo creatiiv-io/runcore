@@ -22,7 +22,7 @@ services:
     working_dir: /app
     command: hasura-cli console --no-browser --address 0.0.0.0 --api-port 1693 --console-port 1695 --endpoint http://graphql:8080 --console-hge-endpoint http://${DEVELOPMENT_DOMAIN:-localhost}:8080
     environment:
-      HASURA_GRAPHQL_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
       HASURA_GRAPHQL_ENDPOINT: "http://graphql:8080"
       HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
       HASURA_GRAPHQL_METADATA_DIR: "/app/metadata"
@@ -40,15 +40,15 @@ services:
     ports:
       - "8080:8080"
     environment:
-      APPCORE_DATABASE_URL: postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore
-      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET}
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore
+      APPCORE_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
       HASURA_GRAPHQL_ENABLE_CONSOLE: "false"
       HASURA_GRAPHQL_DEV_MODE: "false"
-      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
-      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: /srv/console-assets
-      HASURA_GRAPHQL_DEFAULT_NAMING_CONVENTION: hasura-default
-      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: annonymous
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, webhook-log, websocket-log, query-log"
+      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_DEFAULT_NAMING_CONVENTION: "hasura-default"
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: "annonymous"
     healthcheck:
       test:
         - CMD-SHELL
