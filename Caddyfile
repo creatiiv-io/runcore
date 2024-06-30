@@ -1,0 +1,19 @@
+:80 {
+	root * /usr/share/caddy
+	encode gzip
+	file_server
+
+	handle /console/* {
+		reverse_proxy console:1695
+	}
+
+	handle /api/* {
+		reverse_proxy graphql:8080
+	}
+
+	handle /v1/* {
+		handle /graphql/* {
+			reverse_proxy graphql:8080
+		}
+	}
+}
