@@ -3,17 +3,35 @@
 	encode gzip
 	file_server
 
+	handle /console/assets/* {
+		reverse_proxy graphql:80
+	}
+
 	handle /console/* {
 		reverse_proxy console:9695
 	}
 
-	handle /api/* {
-		reverse_proxy graphql:8080
+	handle /v1/version {
+		reverse_proxy graphql:80
 	}
 
-	handle /v1/* {
-		handle /graphql/* {
-			reverse_proxy graphql:8080
-		}
+	handle /v1/graphql {
+		reverse_proxy graphql:80
+	}
+
+	handle /v1/metadata {
+		reverse_proxy graphql:80
+	}
+
+	handle /v1alpha1/config {
+		reverse_proxy graphql:80
+	}
+
+	handle /v2/query {
+		reverse_proxy graphql:80
+	}
+
+	handle /api/* {
+		reverse_proxy graphql:80
 	}
 }
