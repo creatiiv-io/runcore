@@ -9,7 +9,14 @@ services:
       POSTGRES_USER: appcore
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - type: bind
+        source: init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+        read_only: true
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        read_only: false
   console:
     image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
     restart: always
@@ -63,5 +70,30 @@ services:
       timeout: 60s
       interval: 5s
       start_period: 60s
+  caddy:
+    image: caddy:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - type: bind
+        source: ./Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: false
+      - type: bind
+        source: ./public/
+        target: /usr/share/caddy/
+        read_only: false
+      - type: volume
+        source: certs_volume
+        target: /data
+        read_only: false
+      - type: volume
+        source: caddy_config
+        target: /config
+        read_only: false
 volumes:
   postgres_data: {}
+  certs_volume: {}
+  caddy_config: {}
