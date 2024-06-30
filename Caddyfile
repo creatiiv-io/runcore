@@ -4,7 +4,7 @@
 	file_server
 
 	handle /console/* {
-		reverse_proxy console:1695
+		reverse_proxy console:9695
 	}
 
 	handle /api/* {
