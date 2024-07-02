@@ -1,0 +1,31 @@
+%syntax-version=1.0.0
+%project=AppCore
+%uri=https://github.com/Creatiiv-io/AppCore/
+
+core/schema 2024-06-24T21:12:38Z Rodney Giles <rodney@rodneygiles.net> # Adding core/schema
+core/table/languages 2024-06-24T21:36:30Z Rodney Giles <rodney@rodneygiles.net> # Added core/table/languages
+core/table/agreements 2024-06-24T21:47:39Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/agreements
+core/table/revisions 2024-06-24T21:52:02Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/revisions
+core/table/signatures 2024-06-24T22:12:46Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/signatures
+core/table/plans 2024-06-24T22:21:11Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/plans
+core/table/features 2024-06-24T22:37:11Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/features
+core/table/plans_have_features 2024-06-24T22:52:38Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/plans_have_features
+core/table/forms 2024-06-24T23:08:02Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/forms
+core/table/accounts 2024-06-24T22:57:36Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/accounts
+core/table/configurations 2024-06-24T23:10:27Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/configurations
+core/table/subscriptions 2024-06-24T23:17:15Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/subscriptions
+core/table/accounts_have_users 2024-06-24T23:21:22Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/accounts_have_users
+core/table/invitations 2024-06-24T23:25:45Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/invitations
+core/table/codes 2024-06-24T23:31:48Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/codes
+core/table/activations 2024-06-24T23:33:55Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/activations
+core/table/settings 2024-06-24T23:37:43Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/settings
+core/table/accounts_changed_settings 2024-06-24T23:43:46Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/accounts_changed_settings
+core/table/preferences 2024-06-24T23:47:57Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/preferences
+core/table/users_changed_preferences 2024-06-24T23:50:38Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/user_changed_preferences
+core/table/invoices 2024-06-24T23:55:40Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/invoices
+core/table/domains 2024-06-25T00:01:38Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/domains
+core/table/events 2024-06-25T00:10:18Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/events
+core/table/webhooks 2024-06-25T00:13:35Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/webhooks
+core/table/runlogs 2024-06-25T00:18:45Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/runlogs
+core/function/accounts 2024-06-28T01:51:03Z rods <rods@penguin> # Adding core/function/accounts
+core/function/accounts_settings 2024-06-28T01:53:54Z rods <rods@penguin> # Adding core/function/accounts_settings
