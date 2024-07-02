@@ -9,6 +9,10 @@ services:
       POSTGRES_USER: appcore
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
+      - type: bind
+        source: ./postgres
+        target: /docker-entrypoint-initdb.d
+        read_only: true
       - type: volume
         source: postgres_data
         target: /var/lib/postgresql/data
