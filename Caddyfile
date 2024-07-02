@@ -1,7 +1,13 @@
 :80 {
-	root * /etc/caddy/public
+	root public
 	encode gzip
 	file_server
+
+	route /admin/* {
+		uri strip_prefix /admin
+		root admin
+		file_server
+	}
 
 	route /console/assets/* {
 		reverse_proxy graphql:8080
