@@ -9,6 +9,12 @@
 		file_server
 	}
 
+	route /core/* {
+		uri strip_prefix /core
+		root core
+		file_server
+	}
+
 	route /console/assets/* {
 		reverse_proxy graphql:8080
 	}
