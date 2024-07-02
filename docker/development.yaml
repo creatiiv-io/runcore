@@ -92,9 +92,13 @@ services:
       - "443:443/udp"
     volumes:
       - type: bind
+        source: ../public
+        target: /usr/share/caddy/
+        read_only: true
+      - type: bind
         source: ./caddy
         target: /etc/caddy/
-        read_only: false
+        read_only: true
       - type: volume
         source: certs_volume
         target: /data

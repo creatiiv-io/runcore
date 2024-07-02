@@ -1,5 +1,5 @@
 :80 {
-	root public
+	root /usr/share/caddy
 	encode gzip
 	file_server
 
