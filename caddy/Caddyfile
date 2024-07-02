@@ -3,24 +3,24 @@
 	encode gzip
 	file_server
 
-	route /admin/* {
+	route /admin* {
 		uri strip_prefix /admin
 		root admin
 		file_server
 	}
 
-	route /core/* {
+	route /core* {
 		uri strip_prefix /core
 		root core
 		file_server
 	}
 
-	route /console/assets/* {
-		reverse_proxy graphql:8080
+	route /console* {
+		reverse_proxy console:9695
 	}
 
-	route /console/* {
-		reverse_proxy console:9695
+	route /console/assets/* {
+		reverse_proxy graphql:8080
 	}
 
 	route /v1/version {
