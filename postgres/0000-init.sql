@@ -4,41 +4,41 @@
 -- https://github.com/hasura/graphql-engine/issues/3657
 
 -- CREATE SCHEMA IF NOT EXISTS extensions;
--- GRANT usage ON SCHEMA extensions TO nhost_auth_admin, nhost_storage_admin;
+-- GRANT usage ON SCHEMA extensions TO appcore_auth, appcore_storage;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto; -- WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS citext; --WITH SCHEMA extensions;
 
--- nhost admin role
+-- appcore admin role
 DO $$
 BEGIN
-    CREATE USER nhost_admin;
+    CREATE USER appcore_admin;
 
   -- equivalent to the postgres role
-  ALTER USER nhost_admin WITH superuser createdb createrole replication bypassrls;
+  ALTER USER appcore_admin WITH superuser createdb createrole replication bypassrls;
 EXCEPTION WHEN others THEN
-    RAISE NOTICE 'NHost admin exists';
+    RAISE NOTICE 'AppCore admin exists';
 END $$;
 
--- nhost hasura
+-- appcore hasura
 DO $$
 BEGIN
-  CREATE USER nhost_hasura;
+  CREATE USER appcore_hasura;
 
-  GRANT postgres TO nhost_hasura;
+  GRANT postgres TO appcore_hasura;
   
-  GRANT ALL PRIVILEGES ON DATABASE local TO nhost_hasura;
+  GRANT ALL PRIVILEGES ON DATABASE local TO appcore_hasura;
   
   CREATE SCHEMA IF NOT EXISTS hdb_catalog;
 
-  ALTER SCHEMA hdb_catalog OWNER TO nhost_hasura;
-  GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO nhost_hasura;
-  GRANT SELECT ON ALL TABLES IN SCHEMA pg_catalog TO nhost_hasura;
+  ALTER SCHEMA hdb_catalog OWNER TO appcore_hasura;
+  GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO appcore_hasura;
+  GRANT SELECT ON ALL TABLES IN SCHEMA pg_catalog TO appcore_hasura;
 
-  GRANT USAGE ON SCHEMA public TO nhost_hasura;
-  GRANT ALL ON ALL TABLES IN SCHEMA public TO nhost_hasura;
-  GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO nhost_hasura;
-  GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO nhost_hasura;
+  GRANT USAGE ON SCHEMA public TO appcore_hasura;
+  GRANT ALL ON ALL TABLES IN SCHEMA public TO appcore_hasura;
+  GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO appcore_hasura;
+  GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO appcore_hasura;
 EXCEPTION WHEN others THEN
     RAISE NOTICE 'Hasura exists';
 END $$;
@@ -46,55 +46,55 @@ END $$;
 -- auth schema
 DO $$
 BEGIN
-  CREATE USER nhost_auth_admin LOGIN NOINHERIT CREATEROLE NOREPLICATION;
+  CREATE USER appcore_auth LOGIN NOINHERIT CREATEROLE NOREPLICATION;
 
-  ALTER ROLE nhost_auth_admin SET search_path TO auth;
+  ALTER ROLE appcore_auth SET search_path TO auth;
   
-  CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION nhost_admin;
-  GRANT ALL PRIVILEGES ON SCHEMA auth TO nhost_auth_admin;
+  CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION appcore_admin;
+  GRANT ALL PRIVILEGES ON SCHEMA auth TO appcore_auth;
 
   -- this is needed in case of events
   -- reference: https://hasura.io/docs/latest/deployment/postgres-requirements/
-  GRANT USAGE ON SCHEMA hdb_catalog TO nhost_auth_admin;
-  GRANT CREATE ON SCHEMA hdb_catalog TO nhost_auth_admin;
-  GRANT ALL ON ALL TABLES IN SCHEMA hdb_catalog TO nhost_auth_admin;
-  GRANT ALL ON ALL SEQUENCES IN SCHEMA hdb_catalog TO nhost_auth_admin;
-  GRANT ALL ON ALL FUNCTIONS IN SCHEMA hdb_catalog TO nhost_auth_admin;
+  GRANT USAGE ON SCHEMA hdb_catalog TO appcore_auth;
+  GRANT CREATE ON SCHEMA hdb_catalog TO appcore_auth;
+  GRANT ALL ON ALL TABLES IN SCHEMA hdb_catalog TO appcore_auth;
+  GRANT ALL ON ALL SEQUENCES IN SCHEMA hdb_catalog TO appcore_auth;
+  GRANT ALL ON ALL FUNCTIONS IN SCHEMA hdb_catalog TO appcore_auth;
 
   -- restore search_path so citext and other extensions are available
-  ALTER ROLE nhost_auth_admin SET search_path TO public;
+  ALTER ROLE appcore_auth SET search_path TO public;
 EXCEPTION WHEN others THEN
-    RAISE NOTICE 'NHost auth setup';
+    RAISE NOTICE 'AppCore auth setup';
 END $$;
 
 -- storage schema
 DO $$
 BEGIN
-  CREATE USER nhost_storage_admin LOGIN NOINHERIT CREATEROLE NOREPLICATION;
+  CREATE USER appcore_storage LOGIN NOINHERIT CREATEROLE NOREPLICATION;
 
-  ALTER ROLE nhost_storage_admin SET search_path TO storage;
+  ALTER ROLE appcore_storage SET search_path TO storage;
 
-  CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION nhost_admin;
-  GRANT ALL PRIVILEGES ON SCHEMA storage TO nhost_storage_admin;
+  CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION appcore_admin;
+  GRANT ALL PRIVILEGES ON SCHEMA storage TO appcore_storage;
 
-  -- necessary for nhost_hasura to access and track objects created by nhost_auth_admin and nhost_storage_admin in the future
-  ALTER DEFAULT PRIVILEGES FOR USER nhost_auth_admin IN SCHEMA auth GRANT ALL ON TABLES TO nhost_hasura;
-  ALTER DEFAULT PRIVILEGES FOR USER nhost_storage_admin IN SCHEMA storage GRANT ALL ON TABLES TO nhost_hasura;
-  GRANT USAGE ON SCHEMA auth TO nhost_hasura;
-  GRANT USAGE ON SCHEMA storage TO nhost_hasura;
+  -- necessary for appcore_hasura to access and track objects created by appcore_auth and appcore_storage in the future
+  ALTER DEFAULT PRIVILEGES FOR USER appcore_auth IN SCHEMA auth GRANT ALL ON TABLES TO appcore_hasura;
+  ALTER DEFAULT PRIVILEGES FOR USER appcore_storage IN SCHEMA storage GRANT ALL ON TABLES TO appcore_hasura;
+  GRANT USAGE ON SCHEMA auth TO appcore_hasura;
+  GRANT USAGE ON SCHEMA storage TO appcore_hasura;
 
   -- this is needed in case of events
   -- reference: https://hasura.io/docs/latest/deployment/postgres-requirements/
-  GRANT USAGE ON SCHEMA hdb_catalog TO nhost_storage_admin;
-  GRANT CREATE ON SCHEMA hdb_catalog TO nhost_storage_admin;
-  GRANT ALL ON ALL TABLES IN SCHEMA hdb_catalog TO nhost_storage_admin;
-  GRANT ALL ON ALL SEQUENCES IN SCHEMA hdb_catalog TO nhost_storage_admin;
-  GRANT ALL ON ALL FUNCTIONS IN SCHEMA hdb_catalog TO nhost_storage_admin;
+  GRANT USAGE ON SCHEMA hdb_catalog TO appcore_storage;
+  GRANT CREATE ON SCHEMA hdb_catalog TO appcore_storage;
+  GRANT ALL ON ALL TABLES IN SCHEMA hdb_catalog TO appcore_storage;
+  GRANT ALL ON ALL SEQUENCES IN SCHEMA hdb_catalog TO appcore_storage;
+  GRANT ALL ON ALL FUNCTIONS IN SCHEMA hdb_catalog TO appcore_storage;
 
   -- restore search_path so citext and other extensions are available
-  ALTER ROLE nhost_storage_admin SET search_path TO public;
+  ALTER ROLE appcore_storage SET search_path TO public;
 EXCEPTION WHEN others THEN
-  RAISE NOTICE 'Nhost storage setup';
+  RAISE NOTICE 'AppCore storage setup';
 END $$;
 
 -- pgbouncer
@@ -104,7 +104,7 @@ BEGIN
 
   REVOKE ALL PRIVILEGES ON SCHEMA public FROM pgbouncer;
 
-  CREATE SCHEMA pgbouncer AUTHORIZATION nhost_admin;
+  CREATE SCHEMA pgbouncer AUTHORIZATION appcore_admin;
 
   CREATE OR REPLACE FUNCTION pgbouncer.user_lookup(in i_username text, out uname text, out phash text)
   RETURNS record AS $func$
@@ -118,7 +118,7 @@ BEGIN
   REVOKE ALL ON FUNCTION pgbouncer.user_lookup(text) FROM public;
   GRANT USAGE ON SCHEMA pgbouncer TO pgbouncer;
   GRANT EXECUTE ON FUNCTION pgbouncer.user_lookup(text) TO pgbouncer;
-  GRANT postgres TO nhost_hasura;
+  GRANT postgres TO appcore_hasura;
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'PGBouncer setup';
 END $$;
