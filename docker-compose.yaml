@@ -21,10 +21,10 @@ services:
         condition: service_healthy
     volumes:
       - type: bind
-        source: ./
-        target: /app
+        source: ./hasura
+        target: /hasura
         read_only: false
-    working_dir: /app
+    working_dir: /hasura
     entrypoint: hasura-cli console --no-browser --address 0.0.0.0 --api-port 80 --api-host http://${DOMAIN_NAME:-localhost} --console-port 9695 --endpoint http://graphql:8080 --console-hge-endpoint http://${DOMAIN_NAME:-localhost}
     networks:
       default:
@@ -88,7 +88,7 @@ services:
       - "443:443/udp"
     volumes:
       - type: bind
-        source: .
+        source: ./caddy
         target: /etc/caddy/
         read_only: false
       - type: volume
