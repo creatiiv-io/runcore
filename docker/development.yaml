@@ -5,8 +5,6 @@ services:
     depends_on:
       graphql:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
     environment:
       AUTH_ACCESS_CONTROL_ALLOWED_EMAIL_DOMAINS: ""
       AUTH_ACCESS_CONTROL_ALLOWED_EMAILS: ""
@@ -15,8 +13,8 @@ services:
       AUTH_ACCESS_CONTROL_BLOCKED_EMAILS: ""
       AUTH_ACCESS_TOKEN_EXPIRES_IN: "900"
       AUTH_ANONYMOUS_USERS_ENABLED: "false"
-      AUTH_API_PREFIX: "/v1"
-      AUTH_CLIENT_URL: "http://localhost:3000"
+      AUTH_API_PREFIX: "/v1/auth"
+      AUTH_CLIENT_URL: "http://${DOMAIN_NAME}/login"
       AUTH_DISABLE_NEW_USERS: "false"
       AUTH_DISABLE_SIGNUP: "false"
       AUTH_EMAIL_PASSWORDLESS_ENABLED: "false"
@@ -24,7 +22,6 @@ services:
       AUTH_GRAVATAR_DEFAULT: "blank"
       AUTH_GRAVATAR_ENABLED: "true"
       AUTH_GRAVATAR_RATING: "g"
-      AUTH_HOST: "0.0.0.0"
       AUTH_JWT_CUSTOM_CLAIMS: '{}'
       AUTH_LOCALE_ALLOWED_LOCALES: "en"
       AUTH_LOCALE_DEFAULT: "en"
@@ -32,10 +29,9 @@ services:
       AUTH_MFA_TOTP_ISSUER: ""
       AUTH_PASSWORD_HIBP_ENABLED: "false"
       AUTH_PASSWORD_MIN_LENGTH: "9"
-      AUTH_PORT: "4000"
       AUTH_REFRESH_TOKEN_EXPIRES_IN: "2592000"
       AUTH_REQUIRE_ELEVATED_CLAIM: "disabled"
-      AUTH_SERVER_URL: "http://${DOMAIN_NAME}/v1"
+      AUTH_SERVER_URL: "http://${DOMAIN_NAME}/v1/auth"
       AUTH_SMTP_AUTH_METHOD: "LOGIN"
       AUTH_SMTP_HOST: "mailhog"
       AUTH_SMTP_PASS: "password"
@@ -45,37 +41,44 @@ services:
       AUTH_SMTP_USER: "user"
       AUTH_USER_DEFAULT_ALLOWED_ROLES: "user,me"
       AUTH_USER_DEFAULT_ROLE: "user"
-      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
-      HASURA_GRAPHQL_DATABASE_URL: "postgres://appcore_hasura@postgres:5432/appcore"
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://appcore_hasura@postgres:5432/appcore"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://${RUNCORE_AUTH_USER:-hasura_auth}:${RUNCORE_AUTH_PASSWORD:-hasura_auth}@postgres:5432/appcore"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-hasura}:${RUNCORE_HASURA_PASSWORD:-hasura}@postgres:5432/appcore"
       HASURA_GRAPHQL_GRAPHQL_URL: "http://graphql:8080/v1/graphql"
       HASURA_GRAPHQL_JWT_SECRET: '{"key":"0f987876650b4a085e64594fae9219e7781b17506bec02489ad061fba8cb22db","type":"HS256"}'
-      POSTGRES_MIGRATIONS_CONNECTION: "postgres://appcore_auth@postgres:5432/appcore"
+      POSTGRES_MIGRATIONS_CONNECTION: "postgres://${RUNCORE_AUTH_USER:-hasura_auth}:${RUNCORE_AUTH_PASSWORD:-hasura_auth}@postgres:5432/appcore"
   postgres:
     image: postgres:16-alpine
     restart: always
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_DB: appcore
-      POSTGRES_USER: appcore
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - type: bind
         source: ./postgres
-        target: /docker-entrypoint-initdb.d
+        target: /postgres
         read_only: true
       - type: volume
         source: postgres_data
         target: /var/lib/postgresql/data
         read_only: false
+    entrypoint: /postgres/init.sh
+    working_dir: /postgres
+    environment:
+      POSTGRES_DB: appcore
+      POSTGRES_USER: ${RUNCORE_ADMIN_USER:-appcore}
+      POSTGRES_PASSWORD: ${RUNCORE_ADMIN_PASSWORD:-development}
+      RUNCORE_ADMIN_USER: ${RUNCORE_ADMIN_USER:-appcore}
+      RUNCORE_ADMIN_PASSWORD: ${RUNCORE_ADMIN_PASSWORD:-development}
+      RUNCORE_AUTH_USER: ${RUNCORE_AUTH_USER:-appcore_auth}
+      RUNCORE_AUTH_PASSWORD: ${RUNCORE_AUTH_PASSWORD:-appcore_auth}
+      RUNCORE_HASURA_USER: ${RUNCORE_HASURA_USER:-appcore_hasura}
+      RUNCORE_HASURA_PASSWORD: ${RUNCORE_HASURA_PASSWORD:-appcore_hasura}
+      RUNCORE_STORAGE_USER: ${RUNCORE_STORAGE_USER:-appcore_storage}
+      RUNCORE_STORAGE_PASSWORD: ${RUNCORE_STORAGE_PASSWORD:-appcore_storage}
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U postgres
-        - -d
-        - postgres
-        - -q
+        - pg_isready -U ${RUNCORE_ADMIN_USER:-appcore} -d appcore -q
       timeout: 60s
       interval: 5s
       start_period: 60s
@@ -97,14 +100,14 @@ services:
         aliases:
           - ${DOMAIN_NAME:-localhost}
     environment:
-      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
       HASURA_GRAPHQL_CORS_DOMAIN: '*'
       HASURA_GRAPHQL_DEV_MODE: "true"
       HASURA_GRAPHQL_DISABLE_CORS: "false"
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
-      HASURA_GRAPHQL_METADATA_DIR: "/app/metadata"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-appcore_hasura}:${RUNCORE_HASURA_PASSWORD:-appcore_hasura}@postgres:5432/appcore"
+      HASURA_GRAPHQL_METADATA_DIR: "/hasura/metadata"
       HASURA_GRAPHQL_MIGRATION_DIR: ""
     healthcheck:
       test:
@@ -114,22 +117,29 @@ services:
       interval: 5s
       start_period: 500s
   graphql:
-    image: hasura/graphql-engine:v2.40.2-ce.ubi
+    image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
     restart: always
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./hasura
+        target: /hasura
+        read_only: false
     environment:
-      APPCORE_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
-      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
       HASURA_GRAPHQL_DEV_MODE: "false"
       HASURA_GRAPHQL_ENABLE_ALLOWLIST: "true"
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
       HASURA_GRAPHQL_ENABLED_APIS: "metadata,graphql,pgdump,config"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup,http-log,webhook-log,websocket-log,query-log"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-appcore_hasura}:${RUNCORE_HASURA_PASSWORD:-appcore_hasura}@postgres:5432/appcore"
       HASURA_GRAPHQL_DEFAULT_NAMING_CONVENTION: "hasura-default"
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-appcore_hasura}:${RUNCORE_HASURA_PASSWORD:-appcore_hasura}@postgres:5432/appcore"
+      HASURA_GRAPHQL_METADATA_DIR: "/hasura/metadata"
+      HASURA_GRAPHQL_MIGRATION_DIR: ""
       HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE: "100"
       HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: "1000"
       HASURA_GRAPHQL_LOG_LEVEL: "warn"
@@ -151,6 +161,9 @@ services:
   caddy:
     image: caddy:2.8.4-alpine
     restart: unless-stopped
+    depends_on:
+      graphql:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
