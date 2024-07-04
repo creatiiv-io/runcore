@@ -119,6 +119,8 @@ services:
   graphql:
     image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
     restart: always
+    ports:
+      - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
