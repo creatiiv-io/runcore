@@ -14,7 +14,7 @@ services:
       AUTH_ACCESS_TOKEN_EXPIRES_IN: "900"
       AUTH_ANONYMOUS_USERS_ENABLED: "false"
       AUTH_API_PREFIX: "/v1/auth"
-      AUTH_CLIENT_URL: "http://${DOMAIN_NAME}/login"
+      AUTH_CLIENT_URL: "http://localhost/login"
       AUTH_DISABLE_NEW_USERS: "false"
       AUTH_DISABLE_SIGNUP: "false"
       AUTH_EMAIL_PASSWORDLESS_ENABLED: "false"
@@ -42,11 +42,11 @@ services:
       AUTH_USER_DEFAULT_ALLOWED_ROLES: "user,me"
       AUTH_USER_DEFAULT_ROLE: "user"
       HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
-      HASURA_GRAPHQL_DATABASE_URL: "postgres://${RUNCORE_AUTH_USER:-hasura_auth}:${RUNCORE_AUTH_PASSWORD:-hasura_auth}@postgres:5432/appcore"
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-hasura}:${RUNCORE_HASURA_PASSWORD:-hasura}@postgres:5432/appcore"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://${RUNCORE_AUTH_USER:-appcore_auth}:${RUNCORE_AUTH_PASSWORD:-appcore_auth}@postgres:5432/appcore"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-appcore_hasura}:${RUNCORE_HASURA_PASSWORD:-appcore_hasura}@postgres:5432/appcore"
       HASURA_GRAPHQL_GRAPHQL_URL: "http://graphql:8080/v1/graphql"
       HASURA_GRAPHQL_JWT_SECRET: '{"key":"0f987876650b4a085e64594fae9219e7781b17506bec02489ad061fba8cb22db","type":"HS256"}'
-      POSTGRES_MIGRATIONS_CONNECTION: "postgres://${RUNCORE_AUTH_USER:-hasura_auth}:${RUNCORE_AUTH_PASSWORD:-hasura_auth}@postgres:5432/appcore"
+      POSTGRES_MIGRATIONS_CONNECTION: "postgres://${RUNCORE_AUTH_USER:-appcore_auth}:${RUNCORE_AUTH_PASSWORD:-appcore_auth}@postgres:5432/appcore"
   postgres:
     image: postgres:16-alpine
     restart: always
