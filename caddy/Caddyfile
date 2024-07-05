@@ -56,5 +56,5 @@
 		reverse_proxy console:80
 	}
 
-	#import /routes/*
+	#import Caddyfile.routes
 }
