@@ -20,36 +20,36 @@
 	}
 
 	route /console/assets/* {
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /v1/version {
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /v1/graphql {
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /v1/metadata {
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /v1/* {
 		rewrite /v1/* /api/rest/*
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /v1alpha1/config {
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /v2/query {
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /api/* {
-		reverse_proxy graphql:8080
+		reverse_proxy hasura:8080
 	}
 
 	route /apis/migrate* {

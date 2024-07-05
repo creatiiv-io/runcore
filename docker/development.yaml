@@ -3,7 +3,7 @@ services:
     image: nhost/hasura-auth:0.31.0
     restart: always
     depends_on:
-      graphql:
+      hasura:
         condition: service_healthy
     environment:
       AUTH_ACCESS_CONTROL_ALLOWED_EMAIL_DOMAINS: ""
@@ -44,7 +44,7 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
       HASURA_GRAPHQL_DATABASE_URL: "postgres://${RUNCORE_AUTH_USER:-appcore_auth}:${RUNCORE_AUTH_PASSWORD:-appcore_auth}@postgres:5432/appcore"
       HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-appcore_hasura}:${RUNCORE_HASURA_PASSWORD:-appcore_hasura}@postgres:5432/appcore"
-      HASURA_GRAPHQL_GRAPHQL_URL: "http://graphql:8080/v1/graphql"
+      HASURA_GRAPHQL_GRAPHQL_URL: "http://hasura:8080/v1/graphql"
       HASURA_GRAPHQL_JWT_SECRET: '{"key":"0f987876650b4a085e64594fae9219e7781b17506bec02489ad061fba8cb22db","type":"HS256"}'
       POSTGRES_MIGRATIONS_CONNECTION: "postgres://${RUNCORE_AUTH_USER:-appcore_auth}:${RUNCORE_AUTH_PASSWORD:-appcore_auth}@postgres:5432/appcore"
   postgres:
@@ -82,41 +82,7 @@ services:
       timeout: 60s
       interval: 5s
       start_period: 60s
-  console:
-    image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
-    restart: always
-    depends_on:
-      graphql:
-        condition: service_healthy
-    volumes:
-      - type: bind
-        source: ./hasura
-        target: /hasura
-        read_only: false
-    working_dir: /hasura
-    entrypoint: hasura-cli console --no-browser --address 0.0.0.0 --api-port 80 --api-host http://${DOMAIN_NAME:-localhost} --console-port 9695 --endpoint http://graphql:8080 --console-hge-endpoint http://${DOMAIN_NAME:-localhost}
-    networks:
-      default:
-        aliases:
-          - ${DOMAIN_NAME:-localhost}
-    environment:
-      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
-      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
-      HASURA_GRAPHQL_CORS_DOMAIN: '*'
-      HASURA_GRAPHQL_DEV_MODE: "true"
-      HASURA_GRAPHQL_DISABLE_CORS: "false"
-      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-appcore_hasura}:${RUNCORE_HASURA_PASSWORD:-appcore_hasura}@postgres:5432/appcore"
-      HASURA_GRAPHQL_METADATA_DIR: "/hasura/metadata"
-      HASURA_GRAPHQL_MIGRATION_DIR: ""
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/9695' || exit 1
-      timeout: 60s
-      interval: 5s
-      start_period: 500s
-  graphql:
+  hasura:
     image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
     restart: always
     ports:
@@ -161,6 +127,40 @@ services:
       timeout: 60s
       interval: 5s
       start_period: 60s
+  console:
+    image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
+    restart: always
+    depends_on:
+      hasura:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./hasura
+        target: /hasura
+        read_only: false
+    working_dir: /hasura
+    entrypoint: hasura-cli console --no-browser --address 0.0.0.0 --api-port 80 --api-host http://${DOMAIN_NAME:-localhost} --console-port 9695 --endpoint http://hasura:8080 --console-hge-endpoint http://${DOMAIN_NAME:-localhost}
+    networks:
+      default:
+        aliases:
+          - ${DOMAIN_NAME:-localhost}
+    environment:
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
+      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_CORS_DOMAIN: '*'
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_DISABLE_CORS: "false"
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${RUNCORE_HASURA_USER:-appcore_hasura}:${RUNCORE_HASURA_PASSWORD:-appcore_hasura}@postgres:5432/appcore"
+      HASURA_GRAPHQL_METADATA_DIR: "/hasura/metadata"
+      HASURA_GRAPHQL_MIGRATION_DIR: ""
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/9695' || exit 1
+      timeout: 60s
+      interval: 5s
+      start_period: 500s
   caddy:
     image: caddy:2.8.4-alpine
     restart: unless-stopped
