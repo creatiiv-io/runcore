@@ -1,8 +1,8 @@
--- Deploy AppCore:core/table/events to pg
+-- Deploy AppCore:hook/table/events to pg
 
 BEGIN;
 
-CREATE TABLE core.events (
+CREATE TABLE hook.events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
   sorting SERIAL,
@@ -12,7 +12,7 @@ CREATE TABLE core.events (
   is_active bool NOT NULL DEFAULT true
 );
 
-COMMENT ON TABLE core.events
+COMMENT ON TABLE hook.events
 IS 'Events which can trigger webhooks';
 
 COMMIT;

@@ -1,7 +1,7 @@
--- Revert AppCore:core/table/events from pg
+-- Revert AppCore:hook/table/events from pg
 
 BEGIN;
 
-DROP TABLE core.events;
+DROP TABLE hook.events;
 
 COMMIT;

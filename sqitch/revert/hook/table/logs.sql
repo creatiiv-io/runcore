@@ -1,7 +1,7 @@
--- Revert AppCore:core/table/runlogs from pg
+-- Revert AppCore:hook/table/logs from pg
 
 BEGIN;
 
-DROP TABLE core.runlogs;
+DROP TABLE hook.logs;
 
 COMMIT;

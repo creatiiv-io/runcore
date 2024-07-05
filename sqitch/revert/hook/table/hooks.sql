@@ -1,7 +1,7 @@
--- Revert AppCore:core/table/webhooks from pg
+-- Revert AppCore:hook/table/hooks from pg
 
 BEGIN;
 
-DROP TABLE core.webhooks;
+DROP TABLE hook.hooks;
 
 COMMIT;
