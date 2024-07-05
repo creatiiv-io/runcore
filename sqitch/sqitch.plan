@@ -26,7 +26,7 @@ core/table/domains 2024-06-25T00:01:38Z Rodney Giles <rodney@rodneygiles.net> # 
 core/table/events 2024-06-25T00:10:18Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/events
 core/table/webhooks 2024-06-25T00:13:35Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/webhooks
 core/table/runlogs 2024-06-25T00:18:45Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/runlogs
-core/function/accounts 2024-06-28T01:51:03Z rods <rods@penguin> # Adding core/function/accounts
 core/function/accounts_settings 2024-06-28T01:53:54Z rods <rods@penguin> # Adding core/function/accounts_settings
 core/table/columns 2024-07-05T06:55:10Z rods <rods@penguin> # Adding core/table/columns
 core/table/issues 2024-07-05T06:57:02Z rods <rods@penguin> # Adding core/table/issues
+core/table/translations 2024-07-05T08:23:05Z rods <rods@penguin> # Adding core/table/translations
