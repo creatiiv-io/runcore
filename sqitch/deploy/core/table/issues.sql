@@ -8,7 +8,7 @@ CREATE TABLE core.issues (
   num SERIAL,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
-  metadata JSONB,
+  data JSONB,
   reply_to UUID REFERENCES core.issues(id),
   column_id UUID REFERENCES core.columns(id)
 );

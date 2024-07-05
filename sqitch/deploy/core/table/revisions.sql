@@ -8,7 +8,7 @@ CREATE TABLE core.revisions (
   revision SERIAL,
   agreement_id uuid NOT NULL REFERENCES core.agreements(id),
 
-  language varchar(2) NOT NULL REFERENCES core.languages(language),
+  language_code varchar(2) NOT NULL REFERENCES core.languages(code),
   body text NOT NULL
 );
 

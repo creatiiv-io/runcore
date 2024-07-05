@@ -14,7 +14,7 @@ BEGIN
 
   SET ROLE "${RUNCORE_AUTH_USER}";
 
-  -- necessary for hasura user to access and track objects created by auth user and store user in the future
+  -- necessary for hasura user to access and track objects
   ALTER DEFAULT PRIVILEGES IN SCHEMA auth
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "${RUNCORE_HASURA_USER}";
   GRANT USAGE ON SCHEMA auth TO "${RUNCORE_HASURA_USER}";

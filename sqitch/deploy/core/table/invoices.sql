@@ -5,6 +5,8 @@ BEGIN;
 CREATE TABLE core.invoices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
+  num int GENERATED ALWAYS AS IDENTITY,
+
   plan_id uuid NOT NULL REFERENCES core.plans (id),
   account_id uuid NOT NULL REFERENCES core.accounts (id),
 

@@ -186,6 +186,20 @@ services:
         target: /config
         read_only: false
     working_dir: /etc/caddy
+  sqitch:
+    image: sqitch/sqitch:v1.4.1
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./sqitch
+        target: /repo
+        read_only: false
+    entrypoint: sqitch deploy && sleep 2d
+    environment:
+      SQITCH_TARGET: "db:pg://${RUNCORE_ADMIN_USER:-appcore}:${RUNCORE_ADMIN_PASSWORD:-development}@postgres:5432/appcore"
 volumes:
   postgres_data: {}
   certs_volume: {}

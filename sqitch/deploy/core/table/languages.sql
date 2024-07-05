@@ -3,13 +3,14 @@
 BEGIN;
 
 CREATE TABLE core.languages (
-  language text PRIMARY KEY
+  code varchar(2) PRIMARY KEY,
+  name text NOT NULL
 );
 
 COMMENT ON TABLE core.languages
 IS 'Language selection for internationalization support';
 
 INSERT INTO core.languages
-VALUES ('en');
+VALUES ('en', 'English');
 
 COMMIT;

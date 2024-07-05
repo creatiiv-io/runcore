@@ -2,10 +2,8 @@
 
 BEGIN;
 
-CREATE FUNCTION accounts_settings(account accounts)
-RETURNS SETOF settings AS $$
-  WITH t AS (
-    SELECT
+CREATE FUNCTION core.accounts_settings(account core.accounts)
+RETURNS SETOF core.settings AS $$
   SELECT
     s.id,
     s.sorting,
@@ -15,10 +13,9 @@ RETURNS SETOF settings AS $$
     s.feature_id,
     s.datatype,
     COALESCE(acs.value, s.value) AS value
-  FROM settings s
-  LEFT OUTER JOIN accounts_changed_settings acs
+  FROM core.settings s
+  LEFT OUTER JOIN core.accounts_settings acs
     ON (acs.setting_id = s.id)
-
 $$ LANGUAGE sql STABLE;
 
 COMMIT;

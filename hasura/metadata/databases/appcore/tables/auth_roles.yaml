@@ -2,6 +2,13 @@ table:
   name: roles
   schema: auth
 array_relationships:
+  - name: accounts_users
+    using:
+      foreign_key_constraint_on:
+        column: role_name
+        table:
+          name: accounts_users
+          schema: core
   - name: user_roles
     using:
       foreign_key_constraint_on:

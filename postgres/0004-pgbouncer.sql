@@ -19,7 +19,6 @@ BEGIN
   REVOKE ALL ON FUNCTION pgbouncer.user_lookup(text) FROM public;
   GRANT USAGE ON SCHEMA pgbouncer TO "${RUNCORE_PGBOUNCER_USER}";
   GRANT EXECUTE ON FUNCTION pgbouncer.user_lookup(text) TO "${RUNCORE_PGBOUNCER_USER}";
-  GRANT postgres TO "${RUNCORE_HASURA_USER}";
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'PGBouncer already setup';
 END $$;

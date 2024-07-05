@@ -2,6 +2,6 @@
 
 BEGIN;
 
--- XXX Add DDLs here.
+DROP FUNCTION core.accounts_settings(account core.accounts);
 
 COMMIT;

@@ -2,6 +2,10 @@
 
 BEGIN;
 
--- XXX Add verifications here.
+DO $$ BEGIN
+  ASSERT (
+    SELECT count(to_regclass('core.issues'))
+  ), 'Missing core.issues table';
+END $$;
 
 ROLLBACK;

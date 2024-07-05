@@ -1,4 +1,4 @@
--- storage schema
+-- core schema
 DO $$
 BEGIN
   CREATE ROLE "${RUNCORE_STORAGE_USER}" WITH
@@ -14,10 +14,12 @@ BEGIN
 
   SET ROLE "${RUNCORE_STORAGE_USER}";
 
-  -- necessary for hasura user to access and track objects created by auth user and store user in the future
-  ALTER DEFAULT PRIVILEGES IN SCHEMA auth
+  -- necessary for hasura user to access and track objects
+  ALTER DEFAULT PRIVILEGES IN SCHEMA storage
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "${RUNCORE_HASURA_USER}";
-  GRANT USAGE ON SCHEMA auth TO "${RUNCORE_HASURA_USER}";
+  GRANT USAGE ON SCHEMA storage TO "${RUNCORE_HASURA_USER}";
+
+  RESET ROLE;
 
   -- this is needed in case of events
   -- reference: https://hasura.io/docs/latest/deployment/postgres-requirements/
@@ -30,5 +32,5 @@ BEGIN
   -- restore search_path so citext and other extensions are available
   ALTER ROLE "${RUNCORE_STORAGE_USER}" SET search_path TO public;
 EXCEPTION WHEN others THEN
-  RAISE NOTICE 'Auth already setup';
+  RAISE NOTICE 'Storage already setup';
 END $$;

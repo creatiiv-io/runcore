@@ -1,8 +1,8 @@
--- Deploy AppCore:core/table/users_changed_preferences to pg
+-- Deploy AppCore:core/table/users_preferences to pg
 
 BEGIN;
 
-CREATE TABLE core.users_changed_preferences (
+CREATE TABLE core.users_preferences (
   user_id uuid NOT NULL REFERENCES auth.users(id),
   preference_id uuid NOT NULL REFERENCES core.preferences(id),
 
@@ -11,7 +11,7 @@ CREATE TABLE core.users_changed_preferences (
   UNIQUE(user_id, preference_id)
 );
 
-COMMENT ON TABLE core.users_changed_preferences
+COMMENT ON TABLE core.users_preferences
 IS 'Preferences set by user';
 
 COMMIT;

@@ -6,7 +6,7 @@ CREATE TABLE core.invitations (
   account_id uuid NOT NULL REFERENCES core.accounts(id),
   email text NOT NULL,
 
-  role text NOT NULL REFERENCES auth.roles(role),
+  role_name text NOT NULL REFERENCES auth.roles(role),
   user_id uuid REFERENCES auth.users(id),
 
   invited_by uuid REFERENCES auth.users(id),
