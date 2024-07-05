@@ -35,8 +35,8 @@
 		reverse_proxy graphql:8080
 	}
 
-	route /v2/rest/* {
-		rewrite /v1/* /api/*
+	route /v1/* {
+		rewrite /v1/* /api/rest/*
 		reverse_proxy graphql:8080
 	}
 
@@ -56,16 +56,5 @@
 		reverse_proxy console:80
 	}
 
-	route /headers {
-		templates
-		respond "
-		Request Headers:
-		{{.Req.Header}}
-		"
-	}
-
-	route /loopback {
-		rewrite /loopback /headers
-		reverse_proxy caddy
-	}
+	#import /routes/*
 }
