@@ -52,7 +52,7 @@
 		reverse_proxy graphql:8080
 	}
 
-	route /apis/migrate/settings {
+	route /apis/migrate* {
 		reverse_proxy console:80
 	}
 

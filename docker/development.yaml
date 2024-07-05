@@ -111,8 +111,8 @@ services:
       HASURA_GRAPHQL_MIGRATION_DIR: ""
     healthcheck:
       test:
-          - CMD-SHELL
-          - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/9695' || exit 1
+        - CMD-SHELL
+        - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/9695' || exit 1
       timeout: 60s
       interval: 5s
       start_period: 500s
@@ -156,16 +156,14 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - curl http://localhost:8080/healthz > /dev/null 2>&1
+# curl http://localhost:8080/healthz > /dev/null 2>&1
+        - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
       timeout: 60s
       interval: 5s
       start_period: 60s
   caddy:
     image: caddy:2.8.4-alpine
     restart: unless-stopped
-    depends_on:
-      graphql:
-        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"

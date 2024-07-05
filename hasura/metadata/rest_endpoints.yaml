@@ -1,9 +1,1 @@
-- comment: ""
-  definition:
-    query:
-      collection_name: allowed-queries
-      query_name: ASDF
-  methods:
-    - GET
-  name: ASDF
-  url: asdf
+[]

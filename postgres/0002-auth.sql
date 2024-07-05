@@ -12,9 +12,14 @@ BEGIN
 
   CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION "${RUNCORE_AUTH_USER}";
 
-  ALTER DEFAULT PRIVELEDGES IN SCHEMA auth
+  SET ROLE "${RUNCORE_AUTH_USER}";
+
+  -- necessary for hasura user to access and track objects created by auth user and store user in the future
+  ALTER DEFAULT PRIVILEGES IN SCHEMA auth
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "${RUNCORE_HASURA_USER}";
   GRANT USAGE ON SCHEMA auth TO "${RUNCORE_HASURA_USER}";
+
+  RESET ROLE;
 
   -- this is needed in case of events
   -- reference: https://hasura.io/docs/latest/deployment/postgres-requirements/
