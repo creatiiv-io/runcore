@@ -1,0 +1,56 @@
+table:
+  name: columns
+  schema: setup
+array_relationships:
+  - name: issues
+    using:
+      foreign_key_constraint_on:
+        column: column_id
+        table:
+          name: issues
+          schema: client
+select_permissions:
+  - role: agent
+    permission:
+      columns:
+        - id
+        - is_done
+        - name
+        - sorting
+      filter:
+        is_public:
+          _eq: true
+    comment: ""
+  - role: client
+    permission:
+      columns:
+        - id
+        - is_done
+        - name
+        - sorting
+      filter:
+        is_public:
+          _eq: true
+    comment: ""
+  - role: owner
+    permission:
+      columns:
+        - id
+        - is_done
+        - name
+        - sorting
+      filter:
+        is_public:
+          _eq: true
+    comment: ""
+  - role: public
+    permission:
+      columns:
+        - id
+        - is_done
+        - name
+        - sorting
+      filter:
+        is_public:
+          _eq: true
+    comment: ""

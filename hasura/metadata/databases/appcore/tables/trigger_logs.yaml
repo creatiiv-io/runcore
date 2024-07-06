@@ -1,0 +1,13 @@
+table:
+  name: logs
+  schema: trigger
+object_relationships:
+  - name: account
+    using:
+      foreign_key_constraint_on: account_id
+  - name: event
+    using:
+      foreign_key_constraint_on: event_id
+  - name: hook
+    using:
+      foreign_key_constraint_on: hook_id

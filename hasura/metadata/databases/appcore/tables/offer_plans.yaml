@@ -1,0 +1,36 @@
+table:
+  name: plans
+  schema: offer
+object_relationships:
+  - name: extends
+    using:
+      foreign_key_constraint_on: extends_plan_id
+array_relationships:
+  - name: addons
+    using:
+      foreign_key_constraint_on:
+        column: extends_plan_id
+        table:
+          name: plans
+          schema: offer
+  - name: features
+    using:
+      foreign_key_constraint_on:
+        column: plan_id
+        table:
+          name: features
+          schema: offer
+  - name: invoices
+    using:
+      foreign_key_constraint_on:
+        column: plan_id
+        table:
+          name: invoices
+          schema: offer
+  - name: subscriptions
+    using:
+      foreign_key_constraint_on:
+        column: plan_id
+        table:
+          name: subscriptions
+          schema: offer

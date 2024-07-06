@@ -1,0 +1,36 @@
+table:
+  name: settings
+  schema: setup
+object_relationships:
+  - name: requires_feature
+    using:
+      foreign_key_constraint_on: feature_id
+array_relationships:
+  - name: inherited_by
+    using:
+      foreign_key_constraint_on:
+        column: setting_id
+        table:
+          name: settings
+          schema: client
+select_permissions:
+  - role: agent
+    permission:
+      columns:
+        - category
+        - datatype
+        - description
+        - id
+        - name
+        - sorting
+        - value
+      filter:
+        requires_feature:
+          offered_features:
+            plan:
+              subscriptions:
+                account:
+                  users:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+    comment: ""

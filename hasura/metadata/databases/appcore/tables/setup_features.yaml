@@ -1,0 +1,82 @@
+table:
+  name: features
+  schema: setup
+array_relationships:
+  - name: empowers_preferences
+    using:
+      foreign_key_constraint_on:
+        column: feature_id
+        table:
+          name: preferences
+          schema: setup
+  - name: empowers_settings
+    using:
+      foreign_key_constraint_on:
+        column: feature_id
+        table:
+          name: settings
+          schema: setup
+  - name: offered_features
+    using:
+      foreign_key_constraint_on:
+        column: feature_id
+        table:
+          name: features
+          schema: offer
+select_permissions:
+  - role: agent
+    permission:
+      columns:
+        - amount
+        - description
+        - id
+        - name
+        - sorting
+      filter:
+        offered_features:
+          plan:
+            is_active:
+              _eq: true
+    comment: ""
+  - role: client
+    permission:
+      columns:
+        - amount
+        - description
+        - id
+        - name
+        - sorting
+      filter:
+        offered_features:
+          plan:
+            is_active:
+              _eq: true
+    comment: ""
+  - role: owner
+    permission:
+      columns:
+        - amount
+        - description
+        - id
+        - name
+        - sorting
+      filter:
+        offered_features:
+          plan:
+            is_active:
+              _eq: true
+    comment: ""
+  - role: public
+    permission:
+      columns:
+        - amount
+        - description
+        - id
+        - name
+        - sorting
+      filter:
+        offered_features:
+          plan:
+            is_active:
+              _eq: true
+    comment: ""

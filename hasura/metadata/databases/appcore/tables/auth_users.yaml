@@ -6,34 +6,34 @@ object_relationships:
     using:
       foreign_key_constraint_on: default_role
 array_relationships:
-  - name: accounts_users
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: accounts_users
-          schema: core
   - name: invitations
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: invitations
-          schema: core
-  - name: invited_by
     using:
       foreign_key_constraint_on:
         column: invited_by
         table:
           name: invitations
-          schema: core
+          schema: client
+  - name: invitationsByUserId
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: invitations
+          schema: client
   - name: issues
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
           name: issues
-          schema: core
+          schema: client
+  - name: preferences
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: preferences
+          schema: client
   - name: refresh_tokens
     using:
       foreign_key_constraint_on:
@@ -47,7 +47,7 @@ array_relationships:
         column: user_id
         table:
           name: signatures
-          schema: core
+          schema: offer
   - name: user_providers
     using:
       foreign_key_constraint_on:
@@ -69,10 +69,10 @@ array_relationships:
         table:
           name: user_security_keys
           schema: auth
-  - name: users_preferences
+  - name: users
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
-          name: users_preferences
-          schema: core
+          name: users
+          schema: client

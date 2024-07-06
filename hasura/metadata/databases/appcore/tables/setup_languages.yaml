@@ -1,0 +1,54 @@
+table:
+  name: languages
+  schema: setup
+array_relationships:
+  - name: accounts
+    using:
+      foreign_key_constraint_on:
+        column: language_code
+        table:
+          name: accounts
+          schema: client
+  - name: revisions
+    using:
+      foreign_key_constraint_on:
+        column: language_code
+        table:
+          name: revisions
+          schema: offer
+  - name: translations
+    using:
+      foreign_key_constraint_on:
+        column: language_code
+        table:
+          name: translations
+          schema: setup
+select_permissions:
+  - role: agent
+    permission:
+      columns:
+        - code
+        - name
+      filter: {}
+    comment: ""
+  - role: client
+    permission:
+      columns:
+        - code
+        - name
+      filter: {}
+    comment: ""
+  - role: owner
+    permission:
+      columns:
+        - code
+        - name
+      filter: {}
+    comment: ""
+  - role: public
+    permission:
+      columns:
+        - code
+        - name
+      filter: {}
+    comment: ""

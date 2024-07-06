@@ -1,0 +1,48 @@
+table:
+  name: translations
+  schema: setup
+object_relationships:
+  - name: language
+    using:
+      foreign_key_constraint_on: language_code
+select_permissions:
+  - role: agent
+    permission:
+      columns:
+        - category
+        - description
+        - language_code
+        - name
+        - thing
+      filter: {}
+    comment: ""
+  - role: client
+    permission:
+      columns:
+        - category
+        - description
+        - language_code
+        - name
+        - thing
+      filter: {}
+    comment: ""
+  - role: owner
+    permission:
+      columns:
+        - category
+        - description
+        - language_code
+        - name
+        - thing
+      filter: {}
+    comment: ""
+  - role: public
+    permission:
+      columns:
+        - category
+        - description
+        - language_code
+        - name
+        - thing
+      filter: {}
+    comment: ""
