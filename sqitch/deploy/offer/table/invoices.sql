@@ -8,7 +8,7 @@ CREATE TABLE offer.invoices (
   num int GENERATED ALWAYS AS IDENTITY,
 
   plan_id uuid NOT NULL REFERENCES offer.plans(id),
-  account_id uuid NOT NULL REFERENCES user.accounts(id),
+  account_id uuid NOT NULL REFERENCES client.accounts(id),
 
   lines jsonb,
   amount numeric(9, 2) NOT NULL,

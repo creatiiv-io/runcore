@@ -4,7 +4,7 @@ BEGIN;
 
 CREATE TABLE offer.features (
   plan_id uuid NOT NULL REFERENCES offer.plans(id),
-  feature_id uuid NOT NULL REFERENCES core.features(id),
+  feature_id uuid NOT NULL REFERENCES setup.features(id),
 
   amount smallint NOT NULL,
 

@@ -10,7 +10,7 @@ CREATE TABLE client.accounts (
   referred_by uuid REFERENCES client.accounts(id),
 
   name text NOT NULL,
-  language_code varchar(2) NOT NULL REFERENCES client.languages(code),
+  language_code varchar(2) NOT NULL REFERENCES setup.languages(code),
 
   is_active bool NOT NULL DEFAULT true,
   is_deleted bool NOT NULL DEFAULT false

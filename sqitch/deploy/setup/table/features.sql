@@ -9,7 +9,7 @@ CREATE TABLE setup.features (
   name text UNIQUE NOT NULL,
   description text NOT NULL,
 
-  ammount smallint NOT NULL
+  amount smallint NOT NULL
 );
 
 COMMENT ON TABLE setup.features IS

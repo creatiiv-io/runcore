@@ -4,7 +4,7 @@ BEGIN;
 
 CREATE TABLE client.users (
   account_id uuid NOT NULL REFERENCES client.accounts(id),
-  user_id uuid NOT NULL REFERENCES auth.client(id),
+  user_id uuid NOT NULL REFERENCES auth.users(id),
 
   role_name text NOT NULL REFERENCES auth.roles(role),
 

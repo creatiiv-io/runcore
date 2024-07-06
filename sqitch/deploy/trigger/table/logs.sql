@@ -1,13 +1,13 @@
--- Deploy AppCore:hook/table/logs to pg
+-- Deploy AppCore:trigger/table/logs to pg
 
 BEGIN;
 
-CREATE TABLE hook.logs (
+CREATE TABLE trigger.logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
   account_id uuid NOT NULL REFERENCES client.accounts(id),
-  webhook_id uuid NOT NULL REFERENCES hook.hooks(id),
-  event_id uuid NOT NULL REFERENCES hook.events(id),
+  hook_id uuid NOT NULL REFERENCES trigger.hooks(id),
+  event_id uuid NOT NULL REFERENCES trigger.events(id),
 
   url text NOT NULL,
   headers jsonb NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE hook.logs (
   return_body text
 );
 
-COMMENT ON TABLE hook.logs
+COMMENT ON TABLE trigger.logs
 IS 'Instances when a Webhook was Triggered';
 
 COMMIT;

@@ -3,7 +3,7 @@
 BEGIN;
 
 CREATE FUNCTION client.accounts_settings(account client.accounts)
-RETURNS SETOF core.settings AS $$
+RETURNS SETOF setup.settings AS $$
   SELECT
     cs.id,
     cs.sorting,
@@ -13,10 +13,10 @@ RETURNS SETOF core.settings AS $$
     cs.feature_id,
     cs.datatype,
     COALESCE(us.value, cs.value) AS value
-  FROM core.settings cs
+  FROM setup.settings cs
   LEFT OUTER JOIN client.settings us
     ON (us.setting_id = cs.id)
-  WHERE us.account_id acount.id;
+  WHERE us.account_id = account.id;
 $$ LANGUAGE sql STABLE;
 
 COMMIT;

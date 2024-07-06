@@ -5,7 +5,7 @@ BEGIN;
 CREATE TABLE offer.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  account_id uuid NOT NULL REFERENCES user.accounts(id),
+  account_id uuid NOT NULL REFERENCES client.accounts(id),
   plan_id uuid NOT NULL REFERENCES offer.plans(id),
 
   quantity smallint NOT NULL DEFAULT 1,

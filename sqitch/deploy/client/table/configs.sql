@@ -4,7 +4,7 @@ BEGIN;
 
 CREATE TABLE client.configs (
   account_id uuid NOT NULL REFERENCES client.accounts(id),
-  form_id uuid NOT NULL REFERENCES core.forms(id),
+  form_id uuid NOT NULL REFERENCES setup.forms(id),
 
   data jsonb NOT NULL,
 

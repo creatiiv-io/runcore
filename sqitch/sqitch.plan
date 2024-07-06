@@ -2,42 +2,38 @@
 %project=AppCore
 %uri=https://github.com/Creatiiv-io/AppCore/
 
-# core setting
-core/table/languages 2024-06-24T21:36:30Z Rodney Giles <rodney@rodneygiles.net> # Added core/table/languages
-core/table/translations 2024-07-05T08:23:05Z rods <rods@penguin> # Adding core/table/translations
-core/table/features 2024-06-24T22:37:11Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/features
-core/table/forms 2024-06-24T23:08:02Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/forms
-core/table/settings 2024-06-24T23:37:43Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/settings
-core/table/preferences 2024-06-24T23:47:57Z Rodney Giles <rodney@rodneygiles.net> # Adding core/table/preferences
+# setup
+setup/table/languages 2024-06-24T21:36:30Z Rodney Giles <rodney@rodneygiles.net> # Added setup/table/languages
+setup/table/translations 2024-07-05T08:23:05Z rods <rods@penguin> # Adding setup/table/translations
+setup/table/features 2024-06-24T22:37:11Z Rodney Giles <rodney@rodneygiles.net> # Adding setup/table/features
+setup/table/forms 2024-06-24T23:08:02Z Rodney Giles <rodney@rodneygiles.net> # Adding setup/table/forms
+setup/table/settings 2024-06-24T23:37:43Z Rodney Giles <rodney@rodneygiles.net> # Adding setup/table/settings
+setup/table/preferences 2024-06-24T23:47:57Z Rodney Giles <rodney@rodneygiles.net> # Adding setup/table/preferences
+setup/table/columns 2024-07-05T06:55:10Z rods <rods@penguin> # Adding setup/table/columns
 
-# user setting
-user/table/accounts 2024-06-24T22:57:36Z Rodney Giles <rodney@rodneygiles.net> # Adding user/table/accounts
-user/table/invitations 2024-06-24T23:25:45Z Rodney Giles <rodney@rodneygiles.net> # Adding user/table/invitations
-user/table/domains 2024-06-25T00:01:38Z Rodney Giles <rodney@rodneygiles.net> # Adding user/table/domains
-user/table/users 2024-06-24T23:21:22Z Rodney Giles <rodney@rodneygiles.net> # Adding user/table/users
-user/table/configs 2024-06-24T23:10:27Z Rodney Giles <rodney@rodneygiles.net> # Adding user/table/configs
-user/table/settings 2024-06-24T23:43:46Z Rodney Giles <rodney@rodneygiles.net> # Adding user/table/settings
-user/table/preferences 2024-06-24T23:50:38Z Rodney Giles <rodney@rodneygiles.net> # Adding user/table/preferences
-user/function/accounts_settings 2024-06-28T01:53:54Z rods <rods@penguin> # Adding user/function/accounts_settings
+# client
+client/table/accounts 2024-06-24T22:57:36Z Rodney Giles <rodney@rodneygiles.net> # Adding client/table/accounts
+client/table/invitations 2024-06-24T23:25:45Z Rodney Giles <rodney@rodneygiles.net> # Adding client/table/invitations
+client/table/domains 2024-06-25T00:01:38Z Rodney Giles <rodney@rodneygiles.net> # Adding client/table/domains
+client/table/users 2024-06-24T23:21:22Z Rodney Giles <rodney@rodneygiles.net> # Adding client/table/users
+client/table/configs 2024-06-24T23:10:27Z Rodney Giles <rodney@rodneygiles.net> # Adding client/table/configs
+client/table/settings 2024-06-24T23:43:46Z Rodney Giles <rodney@rodneygiles.net> # Adding client/table/settings
+client/table/preferences 2024-06-24T23:50:38Z Rodney Giles <rodney@rodneygiles.net> # Adding client/table/preferences
+client/function/accounts_settings 2024-06-28T01:53:54Z rods <rods@penguin> # Adding client/function/accounts_settings
+client/table/issues 2024-07-05T06:57:02Z rods <rods@penguin> # Adding client/table/issues
 
-# plans and offers
-plan/table/offers 2024-06-24T22:21:11Z Rodney Giles <rodney@rodneygiles.net> # Adding plan/table/offers
-plan/table/features 2024-06-24T22:52:38Z Rodney Giles <rodney@rodneygiles.net> # Adding plan/table/features
-plan/table/subscriptions 2024-06-24T23:17:15Z Rodney Giles <rodney@rodneygiles.net> # Adding plan/table/subscriptions
-plan/table/invoices 2024-06-24T23:55:40Z Rodney Giles <rodney@rodneygiles.net> # Adding plan/table/invoices
-plan/table/codes 2024-06-24T23:31:48Z Rodney Giles <rodney@rodneygiles.net> # Adding plan/table/codes
-plan/table/activations 2024-06-24T23:33:55Z Rodney Giles <rodney@rodneygiles.net> # Adding plan/table/activations
+# offer
+offer/table/plans 2024-06-24T22:21:11Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/plans
+offer/table/features 2024-06-24T22:52:38Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/features
+offer/table/subscriptions 2024-06-24T23:17:15Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/subscriptions
+offer/table/invoices 2024-06-24T23:55:40Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/invoices
+offer/table/codes 2024-06-24T23:31:48Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/codes
+offer/table/activations 2024-06-24T23:33:55Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/activations
+offer/table/agreements 2024-06-24T21:47:39Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/agreements
+offer/table/revisions 2024-06-24T21:52:02Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/revisions
+offer/table/signatures 2024-06-24T22:12:46Z Rodney Giles <rodney@rodneygiles.net> # Adding offer/table/signatures
 
-# signatures
-sign/table/agreements 2024-06-24T21:47:39Z Rodney Giles <rodney@rodneygiles.net> # Adding sign/table/agreements
-sign/table/revisions 2024-06-24T21:52:02Z Rodney Giles <rodney@rodneygiles.net> # Adding sign/table/revisions
-sign/table/signatures 2024-06-24T22:12:46Z Rodney Giles <rodney@rodneygiles.net> # Adding sign/table/signatures
-
-#help
-help/table/columns 2024-07-05T06:55:10Z rods <rods@penguin> # Adding help/table/columns
-help/table/issues 2024-07-05T06:57:02Z rods <rods@penguin> # Adding help/table/issues
-
-#hooks
-hook/table/events 2024-06-25T00:10:18Z Rodney Giles <rodney@rodneygiles.net> # Adding hook/table/events
-hook/table/hooks 2024-06-25T00:13:35Z Rodney Giles <rodney@rodneygiles.net> # Adding hook/table/hooks
-hook/table/logs 2024-06-25T00:18:45Z Rodney Giles <rodney@rodneygiles.net> # Adding hook/table/logs
+#trigger
+trigger/table/events 2024-06-25T00:10:18Z Rodney Giles <rodney@rodneygiles.net> # Adding trigger/table/events
+trigger/table/hooks 2024-06-25T00:13:35Z Rodney Giles <rodney@rodneygiles.net> # Adding trigger/table/hooks
+trigger/table/logs 2024-06-25T00:18:45Z Rodney Giles <rodney@rodneygiles.net> # Adding trigger/table/logs
