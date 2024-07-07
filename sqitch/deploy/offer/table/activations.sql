@@ -3,7 +3,7 @@
 BEGIN;
 
 CREATE TABLE offer.activations (
-  code uuid PRIMARY KEY REFERENCES offer.codes(code),
+  code_num uuid PRIMARY KEY REFERENCES offer.codes(code_num),
   account_id uuid NOT NULL REFERENCES client.accounts(id),
 
   activated_at timestamptz NOT NULL DEFAULT now()

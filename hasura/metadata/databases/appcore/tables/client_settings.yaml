@@ -8,3 +8,46 @@ object_relationships:
   - name: default
     using:
       foreign_key_constraint_on: setting_id
+insert_permissions:
+  - role: owner
+    permission:
+      check:
+        account:
+          users:
+            _and:
+              - user_id:
+                  _eq: X-Hasura-User-Id
+              - role_name:
+                  _eq: owner
+      columns:
+        - account_id
+        - setting_id
+        - value
+    comment: ""
+update_permissions:
+  - role: owner
+    permission:
+      columns:
+        - value
+      filter:
+        account:
+          users:
+            _and:
+              - user_id:
+                  _eq: X-Hasura-User-Id
+              - role_name:
+                  _eq: owner
+      check: null
+    comment: ""
+delete_permissions:
+  - role: owner
+    permission:
+      filter:
+        account:
+          users:
+            _and:
+              - user_id:
+                  _eq: X-Hasura-User-Id
+              - role_name:
+                  _eq: owner
+    comment: ""

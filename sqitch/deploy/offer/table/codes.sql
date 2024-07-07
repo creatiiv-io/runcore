@@ -3,11 +3,12 @@
 BEGIN;
 
 CREATE TABLE offer.codes (
-  code uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code_num uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
   platform text NOT NULL,
 
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL DEFAULT now() + INTERVAL '4 months'
 );
 
 COMMENT ON TABLE offer.codes IS

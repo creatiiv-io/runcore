@@ -31,8 +31,12 @@ select_permissions:
         - reply_to
         - title
       filter:
-        is_hidden:
-          _eq: false
+        _and:
+          - is_hidden:
+              _eq: false
+          - column:
+              is_public:
+                _eq: true
     comment: ""
   - role: client
     permission:
@@ -45,8 +49,12 @@ select_permissions:
         - reply_to
         - title
       filter:
-        is_hidden:
-          _eq: false
+        _and:
+          - is_hidden:
+              _eq: false
+          - column:
+              is_public:
+                _eq: true
     comment: ""
   - role: owner
     permission:
@@ -59,8 +67,12 @@ select_permissions:
         - reply_to
         - title
       filter:
-        is_hidden:
-          _eq: false
+        _and:
+          - is_hidden:
+              _eq: false
+          - column:
+              is_public:
+                _eq: true
     comment: ""
   - role: public
     permission:
@@ -73,6 +85,10 @@ select_permissions:
         - reply_to
         - title
       filter:
-        is_hidden:
-          _eq: false
+        _and:
+          - is_hidden:
+              _eq: false
+          - column:
+              is_public:
+                _eq: true
     comment: ""
