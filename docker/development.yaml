@@ -61,7 +61,7 @@ services:
         source: postgres_data
         target: /var/lib/postgresql/data
         read_only: false
-    entrypoint: /postgres/init.sh
+    entrypoint: sleep 2d #/postgres/setup.sh
     working_dir: /postgres
     environment:
       POSTGRES_DB: appcore
@@ -75,6 +75,8 @@ services:
       RUNCORE_HASURA_PASSWORD: ${RUNCORE_HASURA_PASSWORD:-appcore_hasura}
       RUNCORE_STORAGE_USER: ${RUNCORE_STORAGE_USER:-appcore_storage}
       RUNCORE_STORAGE_PASSWORD: ${RUNCORE_STORAGE_PASSWORD:-appcore_storage}
+      RUNCORE_PGBOUNCER_USER: ${RUNCORE_STORAGE_USER:-pgbouncer}
+      RUNCORE_PGBOUNCER_PASSWORD: ${RUNCORE_STORAGE_PASSWORD:-pgbouncer}
     healthcheck:
       test:
         - CMD-SHELL
@@ -186,20 +188,6 @@ services:
         target: /config
         read_only: false
     working_dir: /etc/caddy
-  sqitch:
-    image: sqitch/sqitch:v1.4.1
-    restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - type: bind
-        source: ./sqitch
-        target: /repo
-        read_only: false
-    entrypoint: sqitch deploy && sleep 2d
-    environment:
-      SQITCH_TARGET: "db:pg://${RUNCORE_ADMIN_USER:-appcore}:${RUNCORE_ADMIN_PASSWORD:-development}@postgres:5432/appcore"
 volumes:
   postgres_data: {}
   certs_volume: {}

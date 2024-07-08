@@ -6,9 +6,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA support
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "${RUNCORE_HASURA_USER}";
 GRANT USAGE ON SCHEMA support TO "${RUNCORE_HASURA_USER}";
 
--- support.columns
+-- table support.columns
 BEGIN;
-  CALL create_pre_migration('support.columns');
+  CALL watch_create_table('support.columns');
 
   CREATE TABLE support.columns (
     id uuid PRIMARY KEY,
@@ -20,27 +20,66 @@ BEGIN;
     is_done bool
   );
 
-  CALL create_post_migration('support.columns');
+  CALL after_create_table('support.columns');
 COMMIT;
 
--- support.boards
+-- table support.boards
 BEGIN;
-  CALL create_pre_migration('support.boards');
+  CALL watch_create_table('support.boards');
 
   CREATE TABLE support.boards (
     id uuid PRIMARY KEY,
 
     name text NOT NULL,
 
-    column_ids uuid[] NOT NULL REFERENCES support.columns(id)
+    column_ids uuid[] NOT NULL
   );
 
-  CALL create_post_migration('support.boards');
+  CALL after_create_table('support.boards');
 COMMIT;
+
+-- function support.boards_column_ids
+CREATE OR REPLACE FUNCTION support.boards_check_column_ids()
+RETURNS TRIGGER AS $$
+DECLARE
+  column_id UUID;
+BEGIN
+  -- Loop through each column_id in the column_ids array
+  FOREACH column_id IN ARRAY NEW.column_ids LOOP
+    -- Check if the column_id exists in the columns table
+    IF NOT EXISTS (
+      SELECT 1
+      FROM support.columns sc
+      WHERE sc.column_id = column_id
+    ) THEN
+      -- Raise an exception if the column_id is not found
+      RAISE EXCEPTION 'FK error. column % does not exists',
+        column_id;
+    END IF;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- trigger support.boards_check_column_ids
+CREATE OR REPLACE TRIGGER boards_check_column_ids
+BEFORE INSERT OR UPDATE ON support.boards
+FOR EACH ROW
+EXECUTE FUNCTION support.boards_check_column_ids();
+
+-- function support.boards_columns
+CREATE OR REPLACE FUNCTION support.boards_columns(board support.boards)
+RETURNS SETOF support.columns
+AS $$
+  SELECT *
+  FROM support.columns
+  WHERE id = ANY(board.column_ids);
+$$ LANGUAGE sql STABLE;
 
 -- support.issues
 BEGIN;
-  CALL create_pre_migration('support.issues');
+  CALL watch_create_table('support.issues');
   
   CREATE TABLE support.issues (
     id uuid PRIMARY KEY,
@@ -52,16 +91,16 @@ BEGIN;
     body text,
     metadata jsonb,
     is_done bool,
-    created_at timestamptz NOT NULL DEFAULT (now()),
+    created_at timestamptz NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     created_by uuid NOT NULL REFERENCES auth.users(id)
   );
   
-  CALL create_post_migration('support.issues');
+  CALL after_create_table('support.issues');
 COMMIT;
 
 -- support.comments
 BEGIN;
-  CALL create_pre_migration('support.comments');
+  CALL watch_create_table('support.comments');
 
   CREATE TABLE support.comments (
     id uuid PRIMARY KEY,
@@ -69,32 +108,32 @@ BEGIN;
 
     body text NOT NULL,
 
-    created_at timestamptz NOT NULL DEFAULT (now()),
+    created_at timestamptz NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     created_by uuid NOT NULL REFERENCES auth.users(id)
   );
 
-  CALL create_post_migration('support.comments');
+  CALL after_create_table('support.comments');
 COMMIT;
 
 -- support.relationships
 BEGIN;
-  CALL create_pre_migration('support.relationships');
+  CALL watch_create_table('support.relationships');
 
   CREATE TABLE support.relationships (
-    id uuid PRIMARY_KEY,
+    id uuid PRIMARY KEY,
     forward_name text NOT NULL,
     backward_name text NOT NULL
   );
 
-  CALL create_post_migration('support.relationships');
+  CALL after_create_table('support.relationships');
 COMMIT;
 
 -- support.relates
 BEGIN;
-  CALL create_pre_migration('support.relates');
+  CALL watch_create_table('support.relates');
 
   CREATE TABLE support.relates (
-    id uuid PRIMARY_KEY,
+    id uuid PRIMARY KEY,
     relationship_id uuid NOT NULL REFERENCES support.relationships(id),
     from_issue_id uuid NOT NULL REFERENCES support.issues(id),
     to_issue_id uuid NOT NULL REFERENCES support.issues(id),
@@ -102,5 +141,6 @@ BEGIN;
     UNIQUE(relationship_id, from_issue_id, to_issue_id)
   );
 
-  CALL create_post_migration('support.relates');
+  CALL after_create_table('support.relates');
 COMMIT;
+

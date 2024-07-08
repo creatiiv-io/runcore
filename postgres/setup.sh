@@ -22,7 +22,7 @@ process_sql_files() {
 			done
 
 			# Pipe the content directly to psql
-			echo "$content" | docker_process_sql
+			echo "$content" | PGHOST= PGHOSTADDR= psql -v QUIET=1 --username "$POSTGRES_USER" --no-password --no-psqlrc --dbname "$POSTGRES_DB"
 		fi
 	done
 }

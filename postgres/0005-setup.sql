@@ -8,7 +8,7 @@ GRANT USAGE ON SCHEMA setup TO "${RUNCORE_HASURA_USER}";
 
 -- setup.languages
 BEGIN;
-  CALL create_pre_migration('setup.languages');
+  CALL watch_create_table('setup.languages');
 
   CREATE TABLE setup.languages (
     code varchar(2) PRIMARY KEY,
@@ -18,15 +18,16 @@ BEGIN;
   COMMENT ON TABLE setup.languages
   IS 'Language selection for internationalization support';
 
-  INSERT INTO setup.languages
-  VALUES ('en', 'English');
+  CALL after_create_table('setup.languages');
 
-  CALL create_post_migration('setup.languages');
+  INSERT INTO setup.languages
+  VALUES ('en', 'English')
+  ON CONFLICT DO NOTHING;
 COMMIT;
 
 -- setup.translations
 BEGIN;
-  CALL create_pre_migration('setup.translations');
+  CALL watch_create_table('setup.translations');
 
   CREATE TABLE setup.translations (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,12 +43,12 @@ BEGIN;
   COMMENT ON TABLE setup.languages
   IS 'Translations of things for internationalization support';
 
-  CALL create_post_migration('setup.translations');
+  CALL after_create_table('setup.translations');
 COMMIT;
 
 -- setup.features
 BEGIN;
-  CALL create_pre_migration('setup.features');
+  CALL watch_create_table('setup.features');
 
   CREATE TABLE setup.features (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -62,12 +63,12 @@ BEGIN;
   COMMENT ON TABLE setup.features IS
   'Feaatures that a plan may Include';
 
-  CALL create_post_migration('setup.forms');
+  CALL after_create_table('setup.features');
 COMMIT;
 
 -- setup.settings
 BEGIN;
-  CALL create_pre_migration('setup.settings');
+  CALL watch_create_table('setup.settings');
 
   CREATE TABLE setup.settings (
     id uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
@@ -86,12 +87,12 @@ BEGIN;
   COMMENT ON TABLE setup.settings
   IS 'Settings with sorting';
 
-  CALL create_post_migration('setup.settings');
+  CALL after_create_table('setup.settings');
 COMMIT;
 
 -- setup.forms
 BEGIN;
-  CALL create_pre_migration('setup.forms');
+  CALL watch_create_table('setup.forms');
 
   CREATE TABLE setup.forms (
     id uuid PRIMARY KEY,
@@ -109,12 +110,12 @@ BEGIN;
   COMMENT ON TABLE setup.forms
   IS 'Data structures for an Application Forms';
 
-  CALL create_post_migration('setup.forms');
+  CALL after_create_table('setup.forms');
 COMMIT;
 
 -- setup.preferences
 BEGIN;
-  CALL create_pre_migration('setup.preferences');
+  CALL watch_create_table('setup.preferences');
 
   CREATE TABLE setup.preferences (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -133,5 +134,5 @@ BEGIN;
   COMMENT ON TABLE setup.preferences
   IS 'User Preferences with sorting';
 
-  CALL create_post_migration('setup.preferences');
+  CALL after_create_table('setup.preferences');
 COMMIT;

@@ -8,7 +8,7 @@ GRANT USAGE ON SCHEMA client TO "${RUNCORE_HASURA_USER}";
 
 -- client.accounts
 BEGIN;
-  CALL create_pre_migration('client.accounts');
+  CALL watch_create_table('client.accounts');
 
   CREATE TABLE client.accounts (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -27,31 +27,31 @@ BEGIN;
   COMMENT ON TABLE client.accounts
   IS 'Multi-user Accounts';
 
-  CALL create_post_migration('client.accounts');
+  CALL after_create_table('client.accounts');
 COMMIT;
 
--- client.configs
+ -- table client.configs
+ BEGIN;
+   CALL watch_create_table('client.configs');
+ 
+   CREATE TABLE client.configs (
+     account_id uuid NOT NULL REFERENCES client.accounts(id),
+     form_id uuid NOT NULL REFERENCES setup.forms(id),
+ 
+     data jsonb NOT NULL,
+ 
+     UNIQUE(account_id, form_id)
+   );
+ 
+   COMMENT ON TABLE client.configs IS
+   'Configuration Data for Accounts';
+ 
+   CALL after_create_table('client.configs');
+ COMMIT;
+ 
+-- table client.domains
 BEGIN;
-  CALL create_pre_migration('client.configs');
-
-  CREATE TABLE client.configs (
-    account_id uuid NOT NULL REFERENCES client.accounts(id),
-    form_id uuid NOT NULL REFERENCES setup.forms(id),
-
-    data jsonb NOT NULL,
-
-    UNIQUE(account_id, form_id)
-  );
-
-  COMMENT ON TABLE client.configs IS
-  'Configuration Data for Accounts';
-
-  CALL create_post_migration('client.accounts');
-COMMIT;
-
--- client.domains
-BEGIN;
-  CALL create_pre_migration('client.domains');
+  CALL watch_create_table('client.domains');
 
   CREATE TABLE client.domains (
     domain_name text PRIMARY KEY,
@@ -65,12 +65,12 @@ BEGIN;
   COMMENT ON TABLE client.domains
   IS 'Domains that can be routed';
 
-  CALL create_post_migration('client.domains');
+  CALL after_create_table('client.domains');
 COMMIT;
 
--- client.invitations
+-- table client.invitations
 BEGIN;
-  CALL create_pre_migration('client.invitations');
+  CALL watch_create_table('client.invitations');
 
   CREATE TABLE client.invitations (
     account_id uuid NOT NULL REFERENCES client.accounts(id),
@@ -87,12 +87,12 @@ BEGIN;
   COMMENT ON TABLE client.invitations
   IS 'Invitations to new Users';
 
-  CALL create_post_migration('client.invitations');
+  CALL after_create_table('client.invitations');
 COMMIT;
 
--- client.preferences
+-- table client.preferences
 BEGIN;
-  CALL create_pre_migration('client.invitations');
+  CALL watch_create_table('client.preferences');
 
   CREATE TABLE client.preferences (
     user_id uuid NOT NULL REFERENCES auth.users(id),
@@ -106,12 +106,12 @@ BEGIN;
   COMMENT ON TABLE client.preferences
   IS 'Preferences set by user';
 
-  CALL create_post_migration('client.invitations');
+  CALL after_create_table('client.preferences');
 COMMIT;
 
--- client.settings
+-- table client.settings
 BEGIN;
-  CALL create_pre_migration('client.settings');
+  CALL watch_create_table('client.settings');
 
   CREATE TABLE client.settings (
     account_id uuid NOT NULL REFERENCES client.accounts(id),
@@ -125,12 +125,12 @@ BEGIN;
   COMMENT ON TABLE client.settings
   IS 'Domains that can be routed';
 
-  CALL create_post_migration('client.settings');
+  CALL after_create_table('client.settings');
 COMMIT;
 
--- client.users
+-- table client.users
 BEGIN;
-  CALL create_pre_migration('client.users');
+  CALL watch_create_table('client.users');
 
   CREATE TABLE client.users (
     account_id uuid NOT NULL REFERENCES client.accounts(id),
@@ -144,10 +144,10 @@ BEGIN;
   COMMENT ON TABLE client.users
   IS 'Users allowed to access an Account';
 
-  CALL create_post_migration('client.users');
+  CALL after_create_table('client.users');
 COMMIT;
 
--- client.accounts_settings
+-- function client.accounts_settings
 CREATE OR REPLACE FUNCTION client.accounts_settings(account client.accounts)
 RETURNS SETOF setup.settings AS $$
   SELECT

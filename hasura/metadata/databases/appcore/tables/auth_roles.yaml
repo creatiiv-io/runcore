@@ -2,13 +2,6 @@ table:
   name: roles
   schema: auth
 array_relationships:
-  - name: invitations
-    using:
-      foreign_key_constraint_on:
-        column: role_name
-        table:
-          name: invitations
-          schema: client
   - name: user_roles
     using:
       foreign_key_constraint_on:
@@ -23,10 +16,3 @@ array_relationships:
         table:
           name: users
           schema: auth
-  - name: usersByRoleName
-    using:
-      foreign_key_constraint_on:
-        column: role_name
-        table:
-          name: users
-          schema: client

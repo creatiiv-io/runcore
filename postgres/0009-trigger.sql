@@ -8,7 +8,7 @@ GRANT USAGE ON SCHEMA trigger TO "${RUNCORE_HASURA_USER}";
 
 -- trigger.events
 BEGIN;
-  CALL create_pre_migration('trigger.events');
+  CALL watch_create_table('trigger.events');
 
   CREATE TABLE trigger.events (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23,12 +23,12 @@ BEGIN;
   COMMENT ON TABLE trigger.events
   IS 'Events which can trigger webhooks';
 
-  CALL create_post_migration('trigger.events');
+  CALL after_create_table('trigger.events');
 COMMIT;
 
 -- trigger.hooks
 BEGIN;
-  CALL create_pre_migration('trigger.hooks');
+  CALL watch_create_table('trigger.hooks');
 
   CREATE TABLE trigger.hooks (
     id uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
@@ -44,12 +44,12 @@ BEGIN;
   COMMENT ON TABLE trigger.hooks
   IS 'Setup Webhooks to Run';
 
-  CALL create_post_migration('trigger.hooks');
+  CALL after_create_table('trigger.hooks');
 COMMIT;
 
 --trigger.logs
 BEGIN;
-  CALL create_pre_migration('trigger.logs');
+  CALL watch_create_table('trigger.logs');
 
   CREATE TABLE trigger.logs (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -70,5 +70,5 @@ BEGIN;
   COMMENT ON TABLE trigger.logs
   IS 'Instances when a Webhook was Triggered';
 
-  CALL create_post_migration('trigger.logs');
+  CALL after_create_table('trigger.logs');
 COMMIT;

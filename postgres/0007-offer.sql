@@ -8,43 +8,43 @@ GRANT USAGE ON SCHEMA offer TO "${RUNCORE_HASURA_USER}";
 
 -- offer.codes
 BEGIN;
-  CALL create_pre_miyygration('offer.codes');
+  CALL watch_create_table('offer.codes');
 
   CREATE TABLE offer.codes (
     code_num uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
     platform text NOT NULL,
 
-    created_at timestamptz NOT NULL DEFAULT now(),
-    expires_at timestamptz NOT NULL DEFAULT now() + INTERVAL '4 months'
+    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP + INTERVAL '4 months'
   );
 
   COMMENT ON TABLE offer.codes IS
   'Activation codes for marketing platform';
 
-  CALL create_post_migration('offer.codes');
+  CALL after_create_table('offer.codes');
 COMMIT;
 
 -- offers.activations
 BEGIN;
-  CALL create_pre_migration('offer.activations');
+  CALL watch_create_table('offer.activations');
 
   CREATE TABLE offer.activations (
     code_num uuid PRIMARY KEY REFERENCES offer.codes(code_num),
     account_id uuid NOT NULL REFERENCES client.accounts(id),
 
-    activated_at timestamptz NOT NULL DEFAULT now()
+    activated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
   COMMENT ON TABLE offer.activations
   IS 'User Preferences with sorting';
 
-  CALL create_post_migration('offer.activations');
+  CALL after_create_table('offer.activations');
 COMMIT;
 
 -- offer.plans
 BEGIN;
-  CALL create_pre_migration('offer.plans');
+  CALL watch_create_table('offer.plans');
 
   CREATE TABLE offer.plans (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,12 +69,12 @@ BEGIN;
   COMMENT ON TABLE offer.plans
   IS 'Plans to which Account may Subscribe';
 
-  CALL create_post_migration('offer.plans');
+  CALL after_create_table('offer.plans');
 COMMIT;
 
 -- offer.features
 BEGIN;
-  CALL create_pre_migration('offer.features');
+  CALL watch_create_table('offer.features');
 
   CREATE TABLE offer.features (
     plan_id uuid NOT NULL REFERENCES offer.plans(id),
@@ -88,12 +88,12 @@ BEGIN;
   COMMENT ON TABLE offer.features
   IS 'Assignment of Features to a Plan by Ammount';
 
-  CALL create_post_migration('offer.features');
+  CALL after_create_table('offer.features');
 COMMIT;
 
 -- offer.subscriptions
 BEGIN;
-  CALL create_pre_migration('offer.subscriptions');
+  CALL watch_create_table('offer.subscriptions');
 
   CREATE TABLE offer.subscriptions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -108,10 +108,10 @@ BEGIN;
     metadata jsonb,
 
     is_active bool NOT NULL DEFAULT true,
-    activated_at timestamptz NOT NULL DEFAULT now(),
+    activated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     is_paused bool NOT NULL DEFAULT false,
-    billed_at timestamptz NOT NULL DEFAULT now(),
+    billed_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     expires_at timestamptz NOT NULL
   );
@@ -119,12 +119,12 @@ BEGIN;
   COMMENT ON TABLE offer.subscriptions
   IS 'Subscriptions to Plans from Accounts';
 
-  CALL create_post_migration('offer.subscriptions');
+  CALL after_create_table('offer.subscriptions');
 COMMIT;
 
 -- offer.invoices
 BEGIN;
-  CALL create_pre_migration('offer.invoices');
+  CALL watch_create_table('offer.invoices');
 
   CREATE TABLE offer.invoices (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -145,12 +145,12 @@ BEGIN;
   COMMENT ON TABLE offer.invoices
   IS 'Invoices generated for Acounts';
 
-  CALL create_post_migration('offer.invoices');
+  CALL after_create_table('offer.invoices');
 COMMIT;
 
 -- offer.agreements
 BEGIN;
-  CALL create_pre_migration('offer.agreements');
+  CALL watch_create_table('offer.agreements');
 
   CREATE TABLE offer.agreements (
     id uuid PRIMARY KEY,
@@ -160,12 +160,12 @@ BEGIN;
   COMMENT ON TABLE offer.agreements
   IS 'Contract agreement names';
 
-  CALL create_post_migration('offer.agreements');
+  CALL after_create_table('offer.agreements');
 COMMIT;
 
 -- offer.revisions
 BEGIN;
-  CALL create_pre_migration('offer.revisions');
+  CALL watch_create_table('offer.revisions');
 
   CREATE TABLE offer.revisions (
     id uuid PRIMARY KEY,
@@ -180,18 +180,18 @@ BEGIN;
   COMMENT ON TABLE offer.revisions
   IS 'Contract revisions possibly in different languages';
 
-  CALL create_post_migration('offer.revisions');
+  CALL after_create_table('offer.revisions');
 COMMIT;
 
 -- offer.signatures
 BEGIN;
-  CALL create_pre_migration('offer.signatures');
+  CALL watch_create_table('offer.signatures');
 
   CREATE TABLE offer.signatures (
     user_id uuid NOT NULL REFERENCES auth.users(id),
     revision_id uuid NOT NULL REFERENCES offer.revisions(id),
 
-    agreed_at timestamptz NOT NULL DEFAULT now(),
+    agreed_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE(user_id, revision_id)
   );
@@ -199,5 +199,5 @@ BEGIN;
   COMMENT ON TABLE offer.signatures
   IS 'User Signatures for agreements';
 
-  CALL create_post_migration('offer.signatures');
+  CALL after_create_table('offer.signatures');
 COMMIT;
