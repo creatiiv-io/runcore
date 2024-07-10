@@ -11,10 +11,13 @@ EXCEPTION WHEN others THEN
   RAISE NOTICE 'role "${RUNCORE_AUTH_USER}" already exists, skipping';
 END $$;
 
+-- make sure we don't add extra stuff
 ALTER ROLE "${RUNCORE_AUTH_USER}" SET search_path TO auth;
 
+-- schema auth
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION "${RUNCORE_AUTH_USER}";
 
+-- drop to auth user
 SET ROLE "${RUNCORE_AUTH_USER}";
 
 -- necessary for hasura user to access and track objects
@@ -35,23 +38,6 @@ GRANT ALL ON ALL FUNCTIONS IN SCHEMA hdb_catalog TO "${RUNCORE_AUTH_USER}";
 -- restore search_path so citext and other extensions are available
 ALTER ROLE "${RUNCORE_AUTH_USER}" SET search_path TO public;
 
--- domain auth.email
-DO $$
-BEGIN
-  CREATE DOMAIN auth.email AS public.citext
-    CONSTRAINT email_check CHECK ((VALUE OPERATOR(public.~) '^[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'::public.citext));
-EXCEPTION WHEN others THEN
-  RAISE NOTICE 'domain "auth.email" already exists, skipping';
-END $$;
-
--- function auth.setcurrent_timestamp_updated_at
-CREATE OR REPLACE FUNCTION auth.set_current_timestamp_updated_at()
-RETURNS trigger AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END $$ LANGUAGE plpgsql;
-
 -- table auth.migrations
 BEGIN;
   CALL watch_create_table('auth.migrations');
@@ -62,7 +48,7 @@ BEGIN;
     name varchar(100) NOT NULL UNIQUE,
     hash varchar(40) NOT NULL,
 
-    executed_at timestamp NOT NULL DEFAULT now()
+    executed_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
   COMMENT ON TABLE auth.migrations
@@ -100,7 +86,7 @@ BEGIN;
   CALL watch_create_table('auth.roles');
 
   CREATE TABLE auth.roles (
-    role text PRIMARY KEY
+    role entity PRIMARY KEY
   );
 
   COMMENT ON TABLE auth.roles
@@ -116,6 +102,7 @@ BEGIN;
     ('admin'),
     ('owner'),
     ('agent'),
+    ('clerk'),
     ('client'),
     ('public')
   ON CONFLICT DO NOTHING;
@@ -130,9 +117,9 @@ BEGIN;
 
     display_name text NOT NULL DEFAULT '',
     avatar_url text NOT NULL DEFAULT '',
-    locale character varying(2) NOT NULL,
+    locale locale NOT NULL,
 
-    email auth.email UNIQUE,
+    email email UNIQUE,
     phone_number text UNIQUE,
     password_hash text,
 
@@ -156,7 +143,7 @@ BEGIN;
     ticket_expires_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     metadata jsonb,
-    new_email auth.email,
+    new_email email,
 
     webauthn_current_challenge text,
 
@@ -174,9 +161,9 @@ BEGIN;
   ALTER TABLE auth.users
   OWNER TO "${RUNCORE_AUTH_USER}";
 
-  CREATE OR REPLACE TRIGGER set_auth_users_updated_at
+  CREATE OR REPLACE TRIGGER auth_users_updated_at
   BEFORE UPDATE ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION auth.set_current_timestamp_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION back.updated_at();
 COMMIT;
 
 -- table auth.user_roles
@@ -186,7 +173,7 @@ BEGIN;
   CREATE TABLE auth.user_roles (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    role text NOT NULL REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    role entity NOT NULL REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
     created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -202,6 +189,42 @@ BEGIN;
   OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
+-- table auth.providers
+BEGIN;
+  CALL watch_create_table('auth.providers');
+
+  CREATE TABLE auth.providers (
+    id entity PRIMARY KEY
+  );
+
+  COMMENT ON TABLE auth.providers
+  IS 'Persistent Hasura roles for users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
+
+  CALL after_create_table('auth.providers');
+
+  ALTER TABLE auth.providers
+  OWNER TO "${RUNCORE_AUTH_USER}";
+
+  INSERT INTO auth.providers (id)
+  VALUES
+    ('github'),
+    ('facebook'),
+    ('twitter'),
+    ('google'),
+    ('apple'),
+    ('linkedin'),
+    ('windowslive'),
+    ('spotify'),
+    ('strava'),
+    ('gitlab'),
+    ('bitbucket'),
+    ('discord'),
+    ('twitch'),
+    ('workos'),
+    ('azuread')
+  ON CONFLICT DO NOTHING;
+COMMIT;
+
 -- table auth.user_providers
 BEGIN;
   CALL watch_create_table('auth.user_providers');
@@ -209,7 +232,7 @@ BEGIN;
   CREATE TABLE auth.user_providers (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    provider_id text NOT NULL REFERENCES auth.providers(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    provider_id entity NOT NULL REFERENCES auth.providers(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     provider_user_id text NOT NULL,
 
     access_token text NOT NULL,
@@ -230,9 +253,9 @@ BEGIN;
   ALTER TABLE auth.user_providers
   OWNER TO "${RUNCORE_AUTH_USER}";
 
-  CREATE OR REPLACE TRIGGER set_auth_user_providers_updated_at
+  CREATE OR REPLACE TRIGGER auth_user_providers_updated_at
   BEFORE UPDATE ON auth.user_providers
-  FOR EACH ROW EXECUTE FUNCTION auth.set_current_timestamp_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION back.updated_at();
 COMMIT;
 
 -- table auth.user_security_keys
@@ -279,48 +302,12 @@ BEGIN;
   OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
--- table auth.providers
-BEGIN;
-  CALL watch_create_table('auth.providers');
-
-  CREATE TABLE auth.providers (
-    id text PRIMARY KEY
-  );
-
-  COMMENT ON TABLE auth.providers
-  IS 'Persistent Hasura roles for users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
-
-  CALL after_create_table('auth.providers');
-
-  ALTER TABLE auth.providers
-  OWNER TO "${RUNCORE_AUTH_USER}";
-
-  INSERT INTO auth.providers (id)
-  VALUES
-    ('github'),
-    ('facebook'),
-    ('twitter'),
-    ('google'),
-    ('apple'),
-    ('linkedin'),
-    ('windowslive'),
-    ('spotify'),
-    ('strava'),
-    ('gitlab'),
-    ('bitbucket'),
-    ('discord'),
-    ('twitch'),
-    ('workos'),
-    ('azuread')
-  ON CONFLICT DO NOTHING;
-COMMIT;
-
 -- table auth.refresh_token_types
 BEGIN;
   CALL watch_create_table('auth.refresh_token_types');
 
   CREATE TABLE auth.refresh_token_types (
-    value text PRIMARY KEY,
+    value entity PRIMARY KEY,
     comment text
   );
 
@@ -344,7 +331,7 @@ BEGIN;
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
 
-    type text NOT NULL DEFAULT 'regular' REFERENCES auth.refresh_token_types(value) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    type entity NOT NULL DEFAULT 'regular' REFERENCES auth.refresh_token_types(value) ON UPDATE RESTRICT ON DELETE RESTRICT,
     metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
     refresh_token_hash character varying(255),
 

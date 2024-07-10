@@ -1,8 +1,90 @@
+-- extension pgcrypto
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- extension citext
 CREATE EXTENSION IF NOT EXISTS citext;
 
+-- domain datatype
+DO $$
+BEGIN
+  CREATE DOMAIN datatype AS text
+    CONSTRAINT datatype_check CHECK (VALUE IN ('number','string','boolean')),
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "datatype" already exists, skipping';
+END $$;
+
+-- domain jsonvalue
+DO $$
+BEGIN
+  CREATE DOMAIN jsonvalue AS jsonb
+    CONSTRAINT jsonvalue_check CHECK (jsonb_typeof(VALUE) IN ('number','string','boolean')),
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "jsonvalue" already exists, skipping';
+END $$;
+
+-- domain locale
+DO $$
+BEGIN
+  CREATE DOMAIN locale AS varchar(2)
+    CONSTRAINT locale_check CHECK ((VALUE ~ '^[a-z]{2}$'));
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "locale" already exists, skipping';
+END $$;
+
+-- domain domain_name
+DO $$
+BEGIN
+  CREATE DOMAIN domain_name AS public.citext
+    CONSTRAINT domain_name_check CHECK (
+      VALUE ~* '^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])\.)+[a-z]{2,}$'
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "domain_name" already exists, skipping';
+END $$;
+
+-- domain email
+DO $$
+BEGIN
+  CREATE DOMAIN email AS public.citext
+    CONSTRAINT email_check CHECK (
+      VALUE ~* '^[a-z0-9.!#$%&''*+/=?^_`{|}~-]+@([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])\.)+[a-z]{2,}$'
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "email" already exists, skipping';
+END $$;
+
+-- domain entity
+DO $$
+BEGIN
+  CREATE DOMAIN entity AS public.citext
+    CONSTRAINT entity_check CHECK (VALUE ~ '^[a-z][a-z0-9_-]+[a-z]$');
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "entity" already exists, skipping';
+END $$;
+
+-- domain shortcode
+DO $$
+BEGIN
+  CREATE DOMAIN shortcode AS varchar(20)
+    CONSTRAINT shortcode_check CHECK (
+      VALUE ~* '^[a-z][a-z0-9-]+[a-z0-9]$' AND length(VALUE) <= 20
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "shortcode" already exists, skipping';
+END $$;
+
+-- domain entity_scoped
+DO $$
+BEGIN
+  CREATE DOMAIN entity_scoped AS public.citext
+    CONSTRAINT entity_scoped_check CHECK (VALUE ~ '^[a-z][a-z0-9_-]+[a-z](\.[a-z][a-z0-9_-]+[a-z])?$');
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "entity_scoped" already exists, skipping';
+END $$;
+
+-- procedure watch_create_table
 CREATE OR REPLACE PROCEDURE watch_create_table(
-  target_table text
+  target_table entity_scoped
 ) AS $$
 DECLARE
   target_schema text DEFAULT 'public';
@@ -82,9 +164,9 @@ BEGIN
   );
 END $$ LANGUAGE plpgsql;
 
-
+-- procedure after_create_table
 CREATE OR REPLACE PROCEDURE after_create_table(
-  target_table text
+  target_table entity_scoped
 ) AS $$
 DECLARE
   target_schema text DEFAULT 'public';
@@ -337,5 +419,121 @@ BEGIN
   );
 END $$ LANGUAGE plpgsql;
 
-REVOKE EXECUTE ON FUNCTION watch_create_table(text) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION after_create_table(text) FROM PUBLIC;
+-- revoke permissions for everyone
+REVOKE ALL ON PROCEDURE watch_create_table(text) FROM public;
+REVOKE ALL ON PROCEDURE after_create_table(text) FROM public;
+
+-- initialize hasura user
+DO $$
+BEGIN
+  CREATE ROLE "${RUNCORE_HASURA_USER}" WITH
+    PASSWORD '${RUNCORE_HASURA_PASSWORD}'
+    LOGIN
+    NOINHERIT
+    CREATEROLE
+    NOREPLICATION;
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'role "${RUNCORE_HASURA_USER}" already exists, skipping';
+END $$;
+
+-- make sure we lock down the hasura user
+REVOKE ALL PRIVILEGES ON DATABASE "${POSTGRES_DB}" TO "${RUNCORE_HASURA_USER}";
+
+-- create hdb_catalog for migrations
+CREATE SCHEMA IF NOT EXISTS hdb_catalog AUTHORIZATION "${RUNCORE_HASURA_USER}";
+ALTER SCHEMA hdb_catalog OWNER TO "${RUNCORE_HASURA_USER}";
+
+-- hasura needs to interogate shemas
+GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO "${RUNCORE_HASURA_USER}";
+GRANT SELECT ON ALL TABLES IN SCHEMA pg_catalog TO "${RUNCORE_HASURA_USER}";
+
+-- give access to hasura user
+GRANT USAGE ON SCHEMA public TO "${RUNCORE_HASURA_USER}";
+GRANT ALL ON ALL TABLES IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
+
+-- pgbouncer
+DO $$
+BEGIN
+  CREATE ROLE "${RUNCORE_PGBOUNCER_USER}" WITH
+    PASSWORD '${RUNCORE_PGBOUNCER_PASSWORD}'
+    LOGIN
+    NOINHERIT
+    CREATEROLE
+    NOREPLICATION;
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'Role "${RUNCORE_PGBOUNCER_USER}" already exists';
+END $$;
+
+-- we don't need much here
+REVOKE ALL PRIVILEGES ON SCHEMA public FROM "${RUNCORE_PGBOUNCER_USER}";
+
+-- it needs it own schema the following function
+CREATE SCHEMA IF NOT EXISTS pgbouncer AUTHORIZATION "${POSTGRES_USER}";
+
+-- we only need this function to lookup a user for pg bouncer
+CREATE OR REPLACE FUNCTION pgbouncer.user_lookup(in i_username text, out uname text, out phash text)
+RETURNS record AS $func$
+BEGIN
+    SELECT usename, passwd FROM pg_catalog.pg_shadow
+    WHERE usename = i_username INTO uname, phash;
+    RETURN;
+END;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- nobody else should be using this function
+REVOKE ALL ON FUNCTION pgbouncer.user_lookup(text) FROM public;
+GRANT USAGE ON SCHEMA pgbouncer TO "${RUNCORE_PGBOUNCER_USER}";
+GRANT EXECUTE ON FUNCTION pgbouncer.user_lookup(text) TO "${RUNCORE_PGBOUNCER_USER}";
+
+-- function sharecode
+CREATE OR REPLACE FUNCTION sharecode(value int) RETURNS text AS $$
+DECLARE
+  -- Declare variables for pseudo encryption
+  l1 int;
+  l2 int;
+  r1 int;
+  r2 int;
+  i int := 0;
+  encrypted_value int;
+  -- Declare variables for base-n conversion
+  alphabet text := 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  base int := length(alphabet);
+  _n int;
+  output text := '';
+  pad_length int;
+  desired_length int := 6;
+BEGIN
+  -- Step 1: Perform pseudo encryption
+  l1 := (value >> 16) & 65535;
+  r1 := value & 65535;
+  WHILE i < 3 LOOP
+    l2 := r1;
+    r2 := l1 # ((((1366 * r1 + 150889) % 714025) / 714025.0) * 32767)::int;
+    l1 := l2;
+    r1 := r2;
+    i := i + 1;
+  END LOOP;
+
+  encrypted_value := (r1 << 16) + l1;
+  _n := abs(encrypted_value);
+
+  -- Step 2: Convert encrypted value to the custom base
+  LOOP
+    output := output || substr(alphabet, 1 + (_n % base)::int, 1);
+    _n := _n / base;
+    EXIT WHEN _n = 0;
+  END LOOP;
+
+  -- Step 3: Pad the output if necessary to ensure it has exactly 6 characters
+  pad_length := desired_length - length(output);
+  IF pad_length > 0 THEN
+    output := repeat(substr(alphabet, 1, 1), pad_length) || output;
+  END IF;
+
+  -- Edge case: If the output somehow is more than 6 characters, truncate it
+  IF length(output) > desired_length THEN
+    output := substr(output, 1, desired_length);
+  END IF;
+

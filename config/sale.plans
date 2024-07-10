@@ -1,0 +1,9 @@
+plan:users:monthly:yearly:platform:codes:description
+subscribe:1:0.00:0.00::0:Direct login base accont
+subscribe.teir-1:1:0.00:0.00::0:
+subscribe.teir-2:3:0.00:0.00::0:
+subscribe.teir-3:10:0.00:0.00::0:
+appsumo:1:0.00:0.00:appsumo:0:AppSumo base accont
+appsumo.teir-1:1:0.00:0.00:appsumo:1:AppSumo 1 code
+appsumo.teir-2:1:0.00:0.00:appsumo:2:AppSumo 2 codes
+appsumo.teir-3:1:0.00:0.00:appsumo:2:AppSumo 3 codes
