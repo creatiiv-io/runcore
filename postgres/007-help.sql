@@ -1,16 +1,16 @@
--- schema support
-CREATE SCHEMA IF NOT EXISTS support;
+-- schema help
+CREATE SCHEMA IF NOT EXISTS help;
 
 -- necessary for hasura user to access and track objects
-ALTER DEFAULT PRIVILEGES IN SCHEMA support
+ALTER DEFAULT PRIVILEGES IN SCHEMA help
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "${RUNCORE_HASURA_USER}";
-GRANT USAGE ON SCHEMA support TO "${RUNCORE_HASURA_USER}";
+GRANT USAGE ON SCHEMA help TO "${RUNCORE_HASURA_USER}";
 
--- table support.columns
+-- table help.columns
 BEGIN;
-  CALL watch_create_table('support.columns');
+  CALL watch_create_table('help.columns');
 
-  CREATE TABLE support.columns (
+  CREATE TABLE help.columns (
     id uuid PRIMARY KEY,
     sorting SERIAL,
 
@@ -20,14 +20,14 @@ BEGIN;
     is_done bool
   );
 
-  CALL after_create_table('support.columns');
+  CALL after_create_table('help.columns');
 COMMIT;
 
--- table support.boards
+-- table help.boards
 BEGIN;
-  CALL watch_create_table('support.boards');
+  CALL watch_create_table('help.boards');
 
-  CREATE TABLE support.boards (
+  CREATE TABLE help.boards (
     id uuid PRIMARY KEY,
 
     name text NOT NULL,
@@ -35,11 +35,11 @@ BEGIN;
     column_ids uuid[] NOT NULL
   );
 
-  CALL after_create_table('support.boards');
+  CALL after_create_table('help.boards');
 COMMIT;
 
--- function support.boards_column_ids
-CREATE OR REPLACE FUNCTION support.boards_check_column_ids()
+-- function help.boards_column_ids
+CREATE OR REPLACE FUNCTION help.boards_check_column_ids()
 RETURNS TRIGGER AS $$
 DECLARE
   column_id UUID;
@@ -49,7 +49,7 @@ BEGIN
     -- Check if the column_id exists in the columns table
     IF NOT EXISTS (
       SELECT 1
-      FROM support.columns sc
+      FROM help.columns sc
       WHERE sc.column_id = column_id
     ) THEN
       -- Raise an exception if the column_id is not found
@@ -62,29 +62,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- trigger support.boards_check_column_ids
+-- trigger help.boards_check_column_ids
 CREATE OR REPLACE TRIGGER boards_check_column_ids
-BEFORE INSERT OR UPDATE ON support.boards
+BEFORE INSERT OR UPDATE ON help.boards
 FOR EACH ROW
-EXECUTE FUNCTION support.boards_check_column_ids();
+EXECUTE FUNCTION help.boards_check_column_ids();
 
--- function support.boards_columns
-CREATE OR REPLACE FUNCTION support.boards_columns(board support.boards)
-RETURNS SETOF support.columns
+-- function help.boards_columns
+CREATE OR REPLACE FUNCTION help.boards_columns(board help.boards)
+RETURNS SETOF help.columns
 AS $$
   SELECT *
-  FROM support.columns
+  FROM help.columns
   WHERE id = ANY(board.column_ids);
 $$ LANGUAGE sql STABLE;
 
--- support.issues
+-- help.issues
 BEGIN;
-  CALL watch_create_table('support.issues');
+  CALL watch_create_table('help.issues');
   
-  CREATE TABLE support.issues (
+  CREATE TABLE help.issues (
     id uuid PRIMARY KEY,
-    board_id uuid REFERENCES support.boards(id),
-    column_id uuid REFERENCES support.columns(id),
+    board_id uuid REFERENCES help.boards(id),
+    column_id uuid REFERENCES help.columns(id),
     num SERIAL,
     ext_num text,
     title text,
@@ -95,16 +95,16 @@ BEGIN;
     created_by uuid NOT NULL REFERENCES auth.users(id)
   );
   
-  CALL after_create_table('support.issues');
+  CALL after_create_table('help.issues');
 COMMIT;
 
--- support.comments
+-- help.comments
 BEGIN;
-  CALL watch_create_table('support.comments');
+  CALL watch_create_table('help.comments');
 
-  CREATE TABLE support.comments (
+  CREATE TABLE help.comments (
     id uuid PRIMARY KEY,
-    issue_id uuid NOT NULL REFERENCES support.issues(id),
+    issue_id uuid NOT NULL REFERENCES help.issues(id),
 
     body text NOT NULL,
 
@@ -112,35 +112,35 @@ BEGIN;
     created_by uuid NOT NULL REFERENCES auth.users(id)
   );
 
-  CALL after_create_table('support.comments');
+  CALL after_create_table('help.comments');
 COMMIT;
 
--- support.relationships
+-- help.relationships
 BEGIN;
-  CALL watch_create_table('support.relationships');
+  CALL watch_create_table('help.relationships');
 
-  CREATE TABLE support.relationships (
+  CREATE TABLE help.relationships (
     id uuid PRIMARY KEY,
     forward_name text NOT NULL,
     backward_name text NOT NULL
   );
 
-  CALL after_create_table('support.relationships');
+  CALL after_create_table('help.relationships');
 COMMIT;
 
--- support.relates
+-- help.relates
 BEGIN;
-  CALL watch_create_table('support.relates');
+  CALL watch_create_table('help.relates');
 
-  CREATE TABLE support.relates (
+  CREATE TABLE help.relates (
     id uuid PRIMARY KEY,
-    relationship_id uuid NOT NULL REFERENCES support.relationships(id),
-    from_issue_id uuid NOT NULL REFERENCES support.issues(id),
-    to_issue_id uuid NOT NULL REFERENCES support.issues(id),
+    relationship_id uuid NOT NULL REFERENCES help.relationships(id),
+    from_issue_id uuid NOT NULL REFERENCES help.issues(id),
+    to_issue_id uuid NOT NULL REFERENCES help.issues(id),
 
     UNIQUE(relationship_id, from_issue_id, to_issue_id)
   );
 
-  CALL after_create_table('support.relates');
+  CALL after_create_table('help.relates');
 COMMIT;
 

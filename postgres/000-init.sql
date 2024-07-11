@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 DO $$
 BEGIN
   CREATE DOMAIN datatype AS text
-    CONSTRAINT datatype_check CHECK (VALUE IN ('number','string','boolean')),
+    CONSTRAINT datatype_check CHECK (VALUE IN ('number','string','boolean'));
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "datatype" already exists, skipping';
 END $$;
@@ -17,7 +17,7 @@ END $$;
 DO $$
 BEGIN
   CREATE DOMAIN jsonvalue AS jsonb
-    CONSTRAINT jsonvalue_check CHECK (jsonb_typeof(VALUE) IN ('number','string','boolean')),
+    CONSTRAINT jsonvalue_check CHECK (jsonb_typeof(VALUE) IN ('number','string','boolean'));
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "jsonvalue" already exists, skipping';
 END $$;
@@ -84,7 +84,7 @@ END $$;
 
 -- procedure watch_create_table
 CREATE OR REPLACE PROCEDURE watch_create_table(
-  target_table entity_scoped
+  target_table text
 ) AS $$
 DECLARE
   target_schema text DEFAULT 'public';
@@ -103,7 +103,8 @@ BEGIN
 
   -- Attempt to acquire the advisory lock without blocking
   IF NOT pg_try_advisory_xact_lock(lock_key) THEN
-    RAISE EXCEPTION 'another process is currently migrating the table %.%, please try again later.', target_schema, target_table;
+    RAISE EXCEPTION 'another process is currently migrating the table %.%, please try again later.',
+      target_schema, target_table;
   END IF;
 
   -- Create the new (migration) schema
@@ -166,7 +167,7 @@ END $$ LANGUAGE plpgsql;
 
 -- procedure after_create_table
 CREATE OR REPLACE PROCEDURE after_create_table(
-  target_table entity_scoped
+  target_table text
 ) AS $$
 DECLARE
   target_schema text DEFAULT 'public';
@@ -190,7 +191,8 @@ BEGIN
 
   -- Ensure we still hold the lock
   IF NOT pg_try_advisory_xact_lock(lock_key) THEN
-    RAISE EXCEPTION 'another process is currently migrating the table %.%, please try again later.', target_schema, target_table;
+    RAISE EXCEPTION 'another process is currently migrating the table %.%, please try again later.',
+      target_schema, target_table;
   END IF;
 
   -- Determine new (migration) schema
@@ -203,8 +205,8 @@ BEGIN
     WHERE ist.table_schema = migrate_schema
       AND ist.table_name = target_table
   ) THEN
-    -- RAISE NOTICE 'table "%.%" new, creating',
-    --   target_schema, target_table;
+    RAISE NOTICE 'table "%.%" new, creating',
+      target_schema, target_table;
 
     -- RAISE NOTICE 'droping schema "%"',
     --   migrate_schema;
@@ -218,13 +220,14 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Compare table structure by checking columns
+  -- Compare table structure by checking columns, ignoring generated columns
   FOR rec IN (
     SELECT
       temp_isc.column_name,
       temp_isc.data_type,
       temp_isc.is_nullable,
-      replace(temp_isc.column_default, migrate_schema, target_schema) AS column_default
+      replace(temp_isc.column_default, migrate_schema, target_schema) AS column_default,
+      temp_isc.is_generated
     FROM information_schema.columns temp_isc
     WHERE temp_isc.table_schema = migrate_schema
       AND temp_isc.table_name = target_table
@@ -233,11 +236,40 @@ BEGIN
       orig_isc.column_name,
       orig_isc.data_type,
       orig_isc.is_nullable,
-      orig_isc.column_default
+      orig_isc.column_default,
+      orig_isc.is_generated
     FROM information_schema.columns orig_isc
     WHERE orig_isc.table_schema = target_schema
       AND orig_isc.table_name = target_table
   ) LOOP
+    -- RAISE NOTICE 'Column difference: % is not identical',
+    --   rec;
+
+    identical := false;
+    EXIT;
+  END LOOP;
+
+  -- Compare indexes to check for changes, ignoring names but focusing on structural differences
+  FOR rec IN (
+    SELECT
+      indisunique,
+      indkey::text,
+      pg_get_expr(indpred, indrelid) AS index_predicate,
+      replace(pg_get_indexdef(indexrelid), migrate_schema, target_schema) AS index_definition
+    FROM pg_index
+    WHERE indrelid = (quote_ident(migrate_schema) || '.' || quote_ident(target_table))::regclass
+    EXCEPT
+    SELECT
+      indisunique,
+      indkey::text,
+      pg_get_expr(indpred, indrelid) AS index_predicate,
+      pg_get_indexdef(indexrelid) AS index_definition
+    FROM pg_index
+    WHERE indrelid = (quote_ident(target_schema) || '.' || quote_ident(target_table))::regclass
+  ) LOOP
+    -- RAISE NOTICE 'Column difference: % is not identical',
+    --   rec;
+
     identical := false;
     EXIT;
   END LOOP;
@@ -293,7 +325,7 @@ BEGIN
       );
     END LOOP;
 
-    -- report and return
+    -- Report and return
     RAISE NOTICE 'table "%.%" unchanged, skipping',
       target_schema, target_table;
 
@@ -318,7 +350,7 @@ BEGIN
   RAISE NOTICE 'table "%.%" updated, migrating data',
     target_schema, target_table;
 
-  -- Determine the intersecting columns
+  -- Determine intersecting columns, excluding generated columns
   SELECT
     string_agg(isc.column_name, ', ')
   INTO
@@ -329,23 +361,25 @@ BEGIN
     FROM information_schema.columns temp_isc
     WHERE temp_isc.table_schema = migrate_schema
       AND temp_isc.table_name = target_table
+      AND temp_isc.is_generated = 'NEVER'
     INTERSECT
     SELECT
       orig_isc.column_name
     FROM information_schema.columns orig_isc
     WHERE orig_isc.table_schema = target_schema
       AND orig_isc.table_name = target_table
+      AND orig_isc.is_generated = 'NEVER'
   ) isc;
 
-    -- Check if column names are empty and raise an exception if true
+  -- Check if column names are empty and raise an exception if true
   IF column_names IS NULL THEN
-    RAISE EXCEPTION 'table %.% fields changed. migration aborted.',
+    RAISE EXCEPTION 'table %.% fields changed. migration error',
       target_schema, target_table;
   END IF;
 
-  -- Transfer data from the old table to the new table
+  -- Transfer data from the old table to the new table, using OVERRIDING SYSTEM VALUE for identity columns
   EXECUTE format(
-    'INSERT INTO %I.%I (%s) SELECT %s FROM %I.%I',
+    'INSERT INTO %I.%I (%s) OVERRIDING SYSTEM VALUE SELECT %s FROM %I.%I',
     target_schema, target_table, column_names, column_names, migrate_schema, target_table
   );
 
@@ -363,7 +397,7 @@ BEGIN
     --   rec.schema_name, rec.table_name;
 
     EXECUTE format(
-      'ALTER TABLE %I ENABLE TRIGGER ALL',
+      'ALTER TABLE %I.%I ENABLE TRIGGER ALL',
       rec.schema_name, rec.table_name
     );
   END LOOP;
@@ -371,14 +405,14 @@ BEGIN
   -- Recreate foreign key constraints from migrate_schema to target_schema
   FOR rec IN (
     SELECT
-        pgc.conname AS constraint_name,
-        pg_get_constraintdef(pgc.oid) AS constraint_definition,
-        pcl.relnamespace::regnamespace AS schema_name,
-        pcl.relname AS table_name
-      FROM pg_constraint pgc
-      JOIN pg_class pcl ON (pcl.oid = pgc.conrelid)
-      WHERE pgc.confrelid = (migrate_schema || '.' || target_table)::regclass
-        AND pgc.contype = 'f'
+      pgc.conname AS constraint_name,
+      pg_get_constraintdef(pgc.oid) AS constraint_definition,
+      pcl.relnamespace::regnamespace AS schema_name,
+      pcl.relname AS table_name
+    FROM pg_constraint pgc
+    JOIN pg_class pcl ON (pcl.oid = pgc.conrelid)
+    WHERE pgc.confrelid = (migrate_schema || '.' || target_table)::regclass
+      AND pgc.contype = 'f'
   ) LOOP
     -- RAISE NOTICE 'table %.% rewrite constraint %',
     --   rec.schema_name, rec.table_name, rec.constraint_name;
@@ -387,7 +421,7 @@ BEGIN
       'ALTER TABLE %I.%I DROP CONSTRAINT %I',
       rec.schema_name, rec.table_name, rec.constraint_name
     );
-  
+
     EXECUTE format(
       'ALTER TABLE %I.%I ADD CONSTRAINT %I %s',
       rec.schema_name, rec.table_name, rec.constraint_name, replace(
@@ -402,9 +436,6 @@ BEGIN
   UPDATE pg_index
   SET indisvalid = true
   WHERE indrelid = (target_schema || '.' || target_table)::regclass;
-
-  -- RAISE NOTICE 'droping schema "%"',
-  --   migrate_schema;
 
   -- Drop the migration table
   EXECUTE format(
@@ -437,7 +468,7 @@ EXCEPTION WHEN others THEN
 END $$;
 
 -- make sure we lock down the hasura user
-REVOKE ALL PRIVILEGES ON DATABASE "${POSTGRES_DB}" TO "${RUNCORE_HASURA_USER}";
+REVOKE ALL PRIVILEGES ON DATABASE "${POSTGRES_DB}" FROM "${RUNCORE_HASURA_USER}";
 
 -- create hdb_catalog for migrations
 CREATE SCHEMA IF NOT EXISTS hdb_catalog AUTHORIZATION "${RUNCORE_HASURA_USER}";
@@ -473,14 +504,17 @@ REVOKE ALL PRIVILEGES ON SCHEMA public FROM "${RUNCORE_PGBOUNCER_USER}";
 CREATE SCHEMA IF NOT EXISTS pgbouncer AUTHORIZATION "${POSTGRES_USER}";
 
 -- we only need this function to lookup a user for pg bouncer
-CREATE OR REPLACE FUNCTION pgbouncer.user_lookup(in i_username text, out uname text, out phash text)
-RETURNS record AS $func$
+CREATE OR REPLACE FUNCTION pgbouncer.user_lookup(
+  in i_username text,
+  out uname text,
+  out phash text
+) RETURNS record AS $$
 BEGIN
     SELECT usename, passwd FROM pg_catalog.pg_shadow
     WHERE usename = i_username INTO uname, phash;
     RETURN;
 END;
-$func$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- nobody else should be using this function
 REVOKE ALL ON FUNCTION pgbouncer.user_lookup(text) FROM public;
@@ -488,7 +522,8 @@ GRANT USAGE ON SCHEMA pgbouncer TO "${RUNCORE_PGBOUNCER_USER}";
 GRANT EXECUTE ON FUNCTION pgbouncer.user_lookup(text) TO "${RUNCORE_PGBOUNCER_USER}";
 
 -- function sharecode
-CREATE OR REPLACE FUNCTION sharecode(value int) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION sharecode(value int)
+RETURNS text AS $$
 DECLARE
   -- Declare variables for pseudo encryption
   l1 int;
@@ -537,3 +572,6 @@ BEGIN
     output := substr(output, 1, desired_length);
   END IF;
 
+  RETURN output;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;

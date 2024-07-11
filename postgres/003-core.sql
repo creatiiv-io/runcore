@@ -37,7 +37,7 @@ BEGIN;
     feature entity_scoped REFERENCES core.features(feature),
     datatype datatype NOT NULL,
     value jsonvalue NOT NULL CHECK (jsonb_typeof(value) = datatype),
-    description text NOT NULL,
+    description text NOT NULL
   );
 
   COMMENT ON TABLE core.settings
@@ -90,7 +90,7 @@ BEGIN;
   CALL watch_create_table('core.translations');
 
   CREATE TABLE core.translations (
-    language locale NOT NULL REFERENCES core.languages(language),
+    language locale NOT NULL REFERENCES core.languages(code),
     identifier entity_scoped NOT NULL CHECK (position('.' IN identifier) != 0),
     category entity GENERATED ALWAYS AS (
       split_part(identifier, '.', 1)
@@ -114,18 +114,18 @@ BEGIN;
   ON CONFLICT DO NOTHING;
 COMMIT;
 
--- core.forms
+-- table core.forms
 BEGIN;
   CALL watch_create_table('core.forms');
 
   CREATE TABLE core.forms (
-    form entity_scoped NOT NULL,
+    form entity_scoped PRIMARY KEY,
     html text NOT NULL,
     graphql text,
 
     is_configuration bool GENERATED ALWAYS AS (
       split_part(form, '.', 1) = 'config'
-    ) STORED,
+    ) STORED
   );
 
   COMMENT ON TABLE core.forms
@@ -134,17 +134,23 @@ BEGIN;
   CALL after_create_table('core.forms');
 COMMIT;
 
---- function.translation
-CREATE OR REPLACE FUNCTION code.translation(language locale)
+--- function core.translation
+CREATE OR REPLACE FUNCTION core.translation(language locale)
 RETURNS jsonb AS $$
-  SELECT jsonb_object_agg(
+WITH inner_agg AS (
+  SELECT
     category,
     jsonb_object_agg(
-      thing,
-      jsonb_build_array(translation, description)
-    )
-  )
-  FROM translations t
-  WHERE t.language = language
-  GROUP BY t.category;
+      ct.thing,
+      jsonb_build_array(
+        ct.translation,
+        ct.description
+      )
+    ) AS category_data
+  FROM core.translations ct
+  WHERE ct.language = language
+  GROUP BY category
+)
+SELECT jsonb_object_agg(category, category_data)
+FROM inner_agg;
 $$ LANGUAGE sql;

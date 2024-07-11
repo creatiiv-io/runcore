@@ -126,7 +126,7 @@ BEGIN;
     email_verified boolean NOT NULL DEFAULT false,
     phone_number_verified boolean NOT NULL DEFAULT false,
   
-    default_role text NOT NULL DEFAULT 'client' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    default_role entity NOT NULL DEFAULT 'client' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
     is_anonymous boolean NOT NULL DEFAULT false,
     disabled boolean NOT NULL DEFAULT false,

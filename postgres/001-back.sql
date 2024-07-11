@@ -63,7 +63,7 @@ $$ LANGUAGE plpgsql;
 
 -- function back.update
 CREATE OR REPLACE FUNCTION back.update()
-RETURNS TRIGGER $$
+RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO back.logs (
     entity,
@@ -73,9 +73,12 @@ BEGIN
     pg_type(OLD),
     OLD.id,
     row_to_jsonb(OLD)
-  )
+  );
+
+  RETURN NEW;
 END;
-$$ LANGUAGE sql;
+$$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION back.history(
   record ANYELEMENT

@@ -25,10 +25,12 @@ COMMIT;
 BEGIN;
   CALL watch_create_table('sign.requirements');
 
-  CREATE TABLE sign.requires (
-    feature entity_scope NOT NULL REFERENCES core.features(feature),
+  CREATE TABLE sign.requirements (
+    feature entity_scoped NOT NULL REFERENCES core.features(feature),
     agreement entity NOT NULL REFERENCES sign.agreements(agreement),
-    description text
+    description text,
+
+    PRIMARY KEY (feature, agreement)
   );
 
   COMMENT ON TABLE sign.requirements
@@ -44,11 +46,15 @@ BEGIN;
   CREATE TABLE sign.revisions (
     id uuid PRIMARY KEY,
     revision SERIAL,
-    timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    timestamp timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     agreement entity NOT NULL REFERENCES sign.agreements(agreement),
-    language_code local NOT NULL REFERENCES setup.languages(code),
+    language_code locale NOT NULL REFERENCES core.languages(code),
     body text NOT NULL,
-    md5 text GENERATED ALWAYS AS (md5(body)) STORED
+
+    md5 text GENERATED ALWAYS AS (
+      md5(body)
+    ) STORED
   );
 
   COMMENT ON TABLE sign.revisions
@@ -67,7 +73,7 @@ BEGIN;
 
     agreed_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE(user_id, revision_id)
+    PRIMARY KEY (user_id, revision_id)
   );
 
   COMMENT ON TABLE sign.signatures

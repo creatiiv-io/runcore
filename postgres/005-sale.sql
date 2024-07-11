@@ -10,15 +10,15 @@ GRANT USAGE ON SCHEMA sale TO "${RUNCORE_HASURA_USER}";
 BEGIN;
   CALL watch_create_table('sale.platforms');
 
-  CREATE TABLE sale.platform (
+  CREATE TABLE sale.platforms (
     platform entity PRIMARY KEY,
     description text
   );
 
-  COMMENT ON TABLE sale.platform IS
+  COMMENT ON TABLE sale.platforms IS
   'Marketing platforms that can generate codes and have free stuff';
 
-  CALL after_create_table('sale.codes');
+  CALL after_create_table('sale.platforms');
 COMMIT;
 
 -- sale.plans
@@ -58,10 +58,10 @@ BEGIN;
   CALL watch_create_table('sale.features');
 
   CREATE TABLE sale.features (
-    feature text NOT NULL REFERENCES core.feature(feature),
-    plan text entity_scoped NULL REFERENCES sale.plans(name),
+    feature entity_scoped NOT NULL REFERENCES core.features(feature),
+    plan entity_scoped NULL REFERENCES sale.plans(plan),
     quantity smallint NOT NULL,
-    description text
+    description text,
 
     PRIMARY KEY (plan, feature)
   );
@@ -115,7 +115,7 @@ BEGIN;
 
   CREATE TABLE sale.activations (
     code uuid PRIMARY KEY REFERENCES sale.codes(code),
-    account_id uuid NOT NULL REFERENCES client.accounts(id),
+    account_id uuid NOT NULL REFERENCES opts.accounts(id),
 
     activated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
@@ -133,7 +133,7 @@ BEGIN;
   CREATE TABLE sale.subscriptions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    account_id uuid NOT NULL REFERENCES client.accounts(id),
+    account_id uuid NOT NULL REFERENCES opts.accounts(id),
     plan entity_scoped NOT NULL REFERENCES sale.plans(plan),
 
     quantity smallint NOT NULL DEFAULT 1,
@@ -170,7 +170,7 @@ BEGIN;
     num int GENERATED ALWAYS AS IDENTITY,
 
     plan entity_scoped NOT NULL REFERENCES sale.plans(plan),
-    account_id uuid NOT NULL REFERENCES client.accounts(id),
+    account_id uuid NOT NULL REFERENCES opts.accounts(id),
 
     lines jsonb,
     amount numeric(9, 2) NOT NULL,

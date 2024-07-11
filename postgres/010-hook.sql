@@ -11,12 +11,13 @@ BEGIN;
   CALL watch_create_table('hook.events');
 
   CREATE TABLE hook.events (
-    entity text NOT NULL,
-    event text NOT NULL,
-    name text NOT NULL,
+    entity entity_scoped NOT NULL,
+    event entity NOT NULL,
     description text NOT NULL,
 
     is_active bool NOT NULL DEFAULT true,
+
+    PRIMARY KEY (entity, event)
   );
 
   COMMENT ON TABLE hook.events
@@ -31,9 +32,12 @@ BEGIN;
 
   CREATE TABLE hook.triggers (
     id uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
+    account_id uuid NOT NULL REFERENCES opts.accounts(id),
 
-    account_id uuid NOT NULL REFERENCES client.accounts(id),
-    event_id uuid NOT NULL REFERENCES hook.events(id),
+    entity entity_scoped NOT NULL,
+    event entity NOT NULL,
+
+    FOREIGN KEY (entity, event) REFERENCES hook.events(entity, event),
 
     url text NOT NULL,
     headers jsonb NOT NULL,
@@ -53,9 +57,13 @@ BEGIN;
   CREATE TABLE hook.logs (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    account_id uuid NOT NULL REFERENCES client.accounts(id),
-    hook_id uuid NOT NULL REFERENCES hook.hooks(id),
-    event_id uuid NOT NULL REFERENCES hook.events(id),
+    account_id uuid NOT NULL REFERENCES opts.accounts(id),
+    trigger_id uuid NOT NULL REFERENCES hook.triggers(id),
+
+    entity entity_scoped NOT NULL,
+    event entity NOT NULL,
+
+    FOREIGN KEY (entity, event) REFERENCES hook.events(entity, event),
 
     url text NOT NULL,
     headers jsonb NOT NULL,
