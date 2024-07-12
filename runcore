@@ -1,0 +1,118 @@
+#!/bin/bash
+
+GITROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"
+RUNCORE_DIR="$GITROOT_DIR/.runcore"
+RUNCORE_URL="http://github.com/creatiiv-io/runcore"
+
+# Function to display the runcore version
+version() {
+  # regular cli
+  [ ! -d "./.runcore/.git" ] && echo "v1.2-cli" && return
+
+  # git tag
+  git_tag=$(cd $RUNCORE_DIR; git describe --tags --exact-match 2>/dev/null)
+
+  # show git version
+  [ $? -eq 0 ] && echo "$current_tag" || echo "v?.?-rouge-$(cd $RUNCORE_DIR; git rev-parse --short HEAD)"
+}
+
+# Function to display the tutorial
+tutorial() {
+  xdg-open https://runcore.dev/tutorial
+}
+
+extensions() {
+  [ -d "./.runcore/scripts" ] && for extscript in ./runcore/scripts/runcore-*.sh; do
+    $extscript $0 $@
+  done
+}
+
+# Function to display help
+help() {
+  # switch through help scenarios
+  case $1 in
+    init)
+      echo "initialize the current directory or one passed with runcore"
+      ;;
+    version)
+      echo "version number will either show the base CLI version or the specific version of runcore for your directory"
+      ;;
+    tutorial)
+      echo "learn all the features in a step by step totorial"
+      ;;
+    *)
+      # if we have an extension script run it 
+      [ -f "./.runcode/scripts/runcore-$1.sh" ] && exec ./.runcode/scripts/runcore-$1.sh $0 $@
+
+      # show the defualt help menu
+      echo "$0 $(version)"
+      echo ""
+      echo "  You can run the following commands:"
+      echo ""
+      echo "  $0 init"
+      echo "  $0 version"
+      echo "  $0 help"
+      echo "  $0 tutorial"
+ 
+      # add extension scripts help
+      extensions help
+
+      echo ""
+      echo "  If you need help on any command just prepend help:"
+      echo ""
+      echo "  $0 help [command]"
+      ;;
+  esac
+}
+
+# Function to initialize runcore
+init() {
+  [ -d "$RUNCORE_DIR" ] && echo "already initialized" && exit 1
+  # if we are in the runcore repo show error
+
+  # Check if we are not in a Git repository
+  if [ -z "$GITROOT_DIR" ]; then
+    read -p "You are not in a Git repository. Do you want to initialize one? (Y/n): " init_git
+    init_git=${init_git:-Y}  # Default to "Y" if no input is given
+    if [ "$init_git" = "y" ] || [ "$init_git" = "Y" ]; then
+      git init
+      export GITROOT_DIR=$(pwd)
+    else
+      echo "Initialization aborted."
+      exit 1
+    fi
+  fi
+
+  local is_runcore="$(grep "RUNCORE_DIR" runcore 2>/dev/null)"
+
+  [ -n "$is_runcore" ] && echo "Runcore cannot initialize in its own source directory"
+
+  #install runcore
+  (cd "$GITROOT_DIR"; git submodule add "$RUNCORE_URL" .runcore)
+
+  # notify of success
+  echo "CONGRADULATIONS! - You have Runcore!"
+  echo ""
+
+  extensions init
+  
+  echo ""
+  echo "Don't forget to commit your changes to git"
+}
+
+# Check for other posibilities
+check() {
+  [ -f ".runcore/scripts/runcore-$1.sh" ] && exec .runcore/scripts/runcore-"$1".sh $0 ${@:2}
+
+  help $@
+}
+
+# switch for base version
+case $1 in
+  version) version;;
+  init) init $2;;
+  tutorial) tutorial $@;;
+  help) help ${@:2};;
+  *) check $@;;
+esac
+

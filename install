@@ -1,0 +1,10 @@
+
+# check distro
+# check docker version
+# check git version
+# check runcore version
+
+# check for curl or wget
+# sudo download runcore to $1 location or /usr/local/bin/run
+
+# show install successsful and suggest next steps of run init or run tutorial
