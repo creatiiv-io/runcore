@@ -1,10 +1,43 @@
+#!/bin/bash
 
-# check distro
-# check docker version
-# check git version
-# check runcore version
+RUNCORE_URL="https://runcore.dev/runcore"
+DOCKER_VERSION=$(docker --version 2>/dev/null)
+GIT_VERSION=$(git --version 2>/dev/null)
+WGET_INSTALL=$(wget --version 2>/dev/null | head -n1)
+INSTALL_DIR=${1%/*}
+INSTALL_DIR=${INSTALL_DIR:-/usr/local/bin/}
+INSTALL_NAME=${1##*/}
+INSTALL_NAME=${INSTALL_NAME:-runcore}
 
-# check for curl or wget
-# sudo download runcore to $1 location or /usr/local/bin/run
+# check for runcore
+if command -v runcore &> /dev/null; then
+  echo "already installed"
+  exit 1
+fi
 
-# show install successsful and suggest next steps of run init or run tutorial
+# check for docker
+[ -z "DOCKER_VERSION" ] && echo "docker is not installed" && exit 1
+
+#check for git
+[ -z "GIT_VERSION" ] && echo "git is not installed" && exit 1
+
+#check for wget
+[ -z "WGET_VERSION" ] && echo "wget is not installed" && exit 1
+
+#download runcore cli
+sudo wget -qSO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
+
+# Check the exit status
+if [ $? -eq 0 ]; then
+    echo "CONGRADULATIONS! - runcore cli at $INSTALL_DIR$INSTALL_NAME"
+    echo ""
+    echo "  To get started you should try:"
+    echo ""
+    echo "  $INSTALL_NAME init"
+    echo "  $INSTALL_NAME dev"
+    echo "  $INSTALL_NAME tutorial"
+    echo ""
+else
+    echo "Failed to download runcore cli at $INSTALL_DIR$INSTALL_NAME"
+    sudo rm -f "$INSTALL_DIR$INSTALL_NAME"
+fi
