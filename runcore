@@ -116,4 +116,3 @@ case $1 in
   help) help ${@:2};;
   *) check $@;;
 esac
-
