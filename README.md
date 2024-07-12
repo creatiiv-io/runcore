@@ -48,10 +48,13 @@ runcore dev
 runcore mobile
 runcore desktop
 runcore down
+
 runcore reset
 runcore console
 runcore seed
 runcore sql
+
+runcore pull [secret]
 
 runcore env
 runcore env [name]
