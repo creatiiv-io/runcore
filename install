@@ -29,7 +29,8 @@ sudo wget -qO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
 
 # Check the exit status
 if [ $? -eq 0 ]; then
-    echo "CONGRADULATIONS! - runcore cli at $INSTALL_DIR$INSTALL_NAME"
+    echo "CONGRADULATIONS! - YOU DID IT!!!"
+    echo "runcore in installed at $INSTALL_DIR$INSTALL_NAME"
     echo ""
     echo "  To get started you should try:"
     echo ""
