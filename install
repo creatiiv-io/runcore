@@ -26,6 +26,7 @@ fi
 
 #download runcore cli
 sudo wget -qO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
+sudo chmod +x "$INSTALL_DIR$INSTALL_NAME"
 
 # Check the exit status
 if [ $? -eq 0 ]; then
