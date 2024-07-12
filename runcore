@@ -7,7 +7,7 @@ RUNCORE_URL="http://github.com/creatiiv-io/runcore"
 # Function to display the runcore version
 version() {
   # regular cli
-  [ ! -d "./.runcore/.git" ] && echo "v1.2-cli" && return
+  [ ! -d "$RUNCORE_DIR/.git" ] && echo "v1.2-cli" && return
 
   # git tag
   git_tag=$(cd $RUNCORE_DIR; git describe --tags --exact-match 2>/dev/null)
@@ -22,7 +22,7 @@ tutorial() {
 }
 
 extensions() {
-  [ -d "./.runcore/scripts" ] && for extscript in ./runcore/scripts/runcore-*.sh; do
+  [ -d "$RUNCORE_DIR/scripts" ] && for extscript in $RUNCORE_DIR/scripts/runcore-*.sh; do
     $extscript $0 $@
   done
 }
@@ -42,7 +42,7 @@ help() {
       ;;
     *)
       # if we have an extension script run it 
-      [ -f "./.runcode/scripts/runcore-$1.sh" ] && exec ./.runcode/scripts/runcore-$1.sh $0 $@
+      [ -f "$RUNCORE_DIR/scripts/runcore-$2.sh" ] && exec $RUNCORE_DIR/scripts/runcore-$2.sh $0 $@
 
       # show the defualt help menu
       echo "$0 $(version)"
@@ -76,16 +76,17 @@ init() {
     init_git=${init_git:-Y}  # Default to "Y" if no input is given
     if [ "$init_git" = "y" ] || [ "$init_git" = "Y" ]; then
       git init
-      export GITROOT_DIR=$(pwd)
+      GITROOT_DIR=.
+      RUNCORE_DIR=./.runcore
     else
       echo "Initialization aborted."
       exit 1
     fi
   fi
 
-  local is_runcore="$(grep "RUNCORE_DIR" runcore 2>/dev/null)"
+  local is_runcore="$(grep "RUNCORE_DIR" $GITROOT_DIR/runcore 2>/dev/null)"
 
-  [ -n "$is_runcore" ] && echo "Runcore cannot initialize in its own source directory"
+  [ -n "$is_runcore" ] && echo "cannot initialize in its own source directory" && exit 1
 
   #install runcore
   (cd "$GITROOT_DIR"; git submodule add "$RUNCORE_URL" .runcore)
@@ -102,7 +103,7 @@ init() {
 
 # Check for other posibilities
 check() {
-  [ -f ".runcore/scripts/runcore-$1.sh" ] && exec .runcore/scripts/runcore-"$1".sh $0 ${@:2}
+  [ -f "$RUNCORE_DIR/runcore-$1.sh" ] && exec $RUNCORE_DIR/runcore-"$1".sh $0 ${@:2}
 
   help $@
 }
