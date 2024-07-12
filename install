@@ -25,7 +25,7 @@ fi
 [ -z "WGET_VERSION" ] && echo "wget is not installed" && exit 1
 
 #download runcore cli
-sudo wget -qSO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
+sudo wget -qO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
 
 # Check the exit status
 if [ $? -eq 0 ]; then
