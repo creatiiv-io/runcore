@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RUNCORE_URL="https://runcore.dev/runcore"
+RUNCORE_URL="https://raw.githubusercontent.com/creatiiv-io/runcore/main/runcore"
 DOCKER_VERSION=$(docker --version 2>/dev/null)
 GIT_VERSION=$(git --version 2>/dev/null)
 WGET_INSTALL=$(wget --version 2>/dev/null | head -n1)
