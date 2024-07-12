@@ -11,18 +11,18 @@ runcore
   /legal
   /metadata
   /migrations
-  /seeds
   /public
+  /seeds
 /system
-  development.yaml
-  production.yaml
   /init
     *.sql
   /admin
   /support
+  up-development.yaml
+  up-production.yaml
 /scripts
+  pg-init.sh
   pg-load.sh
-  pg-seed.sh
   runcore-*.sh
 
 app
@@ -40,22 +40,28 @@ app
 runcore init
 runcore version
 runcore help
-
-runcore up
-runcore down
-runcore backup
+runcore tutorial
 runcore update [ver]
 
+runcore
+runcore dev
+runcore mobile
+runcore desktop
+runcore down
+runcore reset
 runcore console
-runcore clear
 runcore seed
 runcore sql
 
-runcore serve [secret]
-runcore secret [secret]
-runcore deploy [secret]
-runcore health [secret]
+runcore env
+runcore env [name]
+runcore env [name] [secret]
+runcore serve [name]
+runcore deploy [name]
+runcore health [name]
+runcore monitor [name]
+runcore publish [name]
+runcore backup [name]
+runcore restore [name]
 
-runcore mobile
-runcore publish [secret]
-
+RUNCORE_ENV_{NAME}=secret
