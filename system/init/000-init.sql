@@ -57,9 +57,18 @@ END $$;
 DO $$
 BEGIN
   CREATE DOMAIN entity AS public.citext
-    CONSTRAINT entity_check CHECK (VALUE ~ '^[a-z][a-z0-9_-]+[a-z]$');
+    CONSTRAINT entity_check CHECK (VALUE ~ '^[a-z][a-z0-9_-]+[a-z0-9]$');
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "entity" already exists, skipping';
+END $$;
+
+-- domain entity_scoped
+DO $$
+BEGIN
+  CREATE DOMAIN entity_scoped AS public.citext
+    CONSTRAINT entity_scoped_check CHECK (VALUE ~ '^[a-z][a-z0-9_-]+[a-z](\.[a-z][a-z0-9_-]+[a-z0-9])?$');
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "entity_scoped" already exists, skipping';
 END $$;
 
 -- domain shortcode
@@ -71,15 +80,6 @@ BEGIN
     );
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "shortcode" already exists, skipping';
-END $$;
-
--- domain entity_scoped
-DO $$
-BEGIN
-  CREATE DOMAIN entity_scoped AS public.citext
-    CONSTRAINT entity_scoped_check CHECK (VALUE ~ '^[a-z][a-z0-9_-]+[a-z](\.[a-z][a-z0-9_-]+[a-z])?$');
-EXCEPTION WHEN others THEN
-  RAISE NOTICE 'domain "entity_scoped" already exists, skipping';
 END $$;
 
 -- procedure watch_create_table
@@ -453,6 +453,72 @@ END $$ LANGUAGE plpgsql;
 -- revoke permissions for everyone
 REVOKE ALL ON PROCEDURE watch_create_table(text) FROM public;
 REVOKE ALL ON PROCEDURE after_create_table(text) FROM public;
+
+-- function table_insert_order
+CREATE OR REPLACE FUNCTION table_insert_order()
+RETURNS TABLE(tablename text)
+AS $$
+BEGIN
+  -- Create temp storage for our list
+  CREATE TEMP TABLE temp_table_insert_order (
+    tablename text PRIMARY KEY
+  );
+
+  -- Insert independent tables (no foreign key dependencies)
+  INSERT INTO temp_table_insert_order (tablename)
+  SELECT pt.schemaname || '.' || pt.tablename
+  FROM pg_tables pt
+  WHERE pt.schemaname NOT IN ('pg_catalog', 'information_schema')
+    AND pt.tablename != 'temp_table_insert_order'
+    AND pt.schemaname || '.' || pt.tablename NOT IN (
+      SELECT DISTINCT pc.conrelid::regclass::text
+      FROM pg_constraint pc
+      WHERE pc.contype = 'f'
+    );
+
+  -- Start process loop
+  LOOP
+    -- Insert tables where all foreign key dependencies are in temp table
+    INSERT INTO temp_table_insert_order (tablename)
+    SELECT pt.schemaname || '.' || pt.tablename
+    FROM pg_tables pt
+    WHERE pt.schemaname NOT IN ('pg_catalog', 'information_schema')
+      AND pt.tablename != 'temp_table_insert_order'
+      AND pt.schemaname || '.' || pt.tablename NOT IN (
+        SELECT tt.tablename
+        FROM temp_table_insert_order tt
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint pc
+        WHERE pc.conrelid = (pt.schemaname || '.' || pt.tablename)::regclass
+          AND pc.conrelid != pc.confrelid
+          AND pc.contype = 'f'
+          AND pc.confrelid::regclass::text NOT IN (
+            SELECT tt.tablename
+            FROM temp_table_insert_order tt
+          )
+      )
+    ON CONFLICT DO NOTHING;
+
+    -- Exit loop if no new rows were added
+    IF NOT FOUND THEN
+      EXIT;
+    END IF;
+  END LOOP;
+
+  -- Return the result
+  RETURN QUERY
+  SELECT tt.tablename
+  FROM temp_table_insert_order tt;
+
+  -- Clean up the temporary table
+  DROP TABLE IF EXISTS temp_table_insert_order;
+END;
+$$ LANGUAGE plpgsql;
+
+-- revoke permissions for everyone
+REVOKE ALL ON FUNCTION table_insert_order() FROM public;
 
 -- initialize hasura user
 DO $$

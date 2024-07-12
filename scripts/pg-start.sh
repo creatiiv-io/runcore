@@ -39,8 +39,6 @@ docker_setup_env
 docker_create_db_directories
 
 if [ "$(id -u)" = '0' ]; then
-	echo "Dropping now to postgres user"
-
 	# then restart script as postgres user
 	exec gosu postgres "$BASH_SOURCE" "$@"
 fi
@@ -70,8 +68,11 @@ docker_temp_server_start "$@"
 # Setup database
 docker_setup_db
 
-# Run init files
-process_sql_files
+# Create database from initfiles
+pg_initdb
+
+# Load data from datafiles
+pg_dataload
 
 # Stop temp server
 docker_temp_server_stop

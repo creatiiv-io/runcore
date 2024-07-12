@@ -54,15 +54,34 @@ services:
       - "5432:5432"
     volumes:
       - type: bind
-        source: ./postgres
-        target: /postgres
+        source: ./scripts/pg-start.sh
+        target: /usr/local/bin/pg_start
+        read_only: true
+      - type: bind
+        source: ./scripts/pg-initdb.sh
+        target: /usr/local/bin/pg_initdb
+        read_only: true
+      - type: bind
+        source: ./scripts/pg-dataload.sh
+        target: /usr/local/bin/pg_dataload
+        read_only: true
+      - type: bind
+        source: ./scripts/pg-tableorder.sh
+        target: /usr/local/bin/pg_tableorder
+        read_only: true
+      - type: bind
+        source: ./system/init
+        target: /initfiles
+        read_only: true
+      - type: bind
+        source: ./core/config
+        target: /datafiles
         read_only: true
       - type: volume
         source: postgres_data
         target: /var/lib/postgresql/data
         read_only: false
-    entrypoint: sleep 2d #/postgres/setup.sh
-    working_dir: /postgres
+    entrypoint: pg_start
     environment:
       POSTGRES_DB: appcore
       POSTGRES_USER: ${RUNCORE_ADMIN_USER:-appcore}

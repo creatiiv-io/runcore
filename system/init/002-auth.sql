@@ -96,16 +96,6 @@ BEGIN;
 
   ALTER TABLE auth.roles
   OWNER TO "${RUNCORE_AUTH_USER}";
-
-  INSERT INTO auth.roles (role)
-  VALUES
-    ('admin'),
-    ('owner'),
-    ('agent'),
-    ('clerk'),
-    ('client'),
-    ('public')
-  ON CONFLICT DO NOTHING;
 COMMIT;
 
 -- table auth.users

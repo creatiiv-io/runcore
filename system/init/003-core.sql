@@ -72,17 +72,13 @@ BEGIN;
 
   CREATE TABLE core.languages (
     code locale PRIMARY KEY,
-    name text NOT NULL
+    language text NOT NULL
   );
 
   COMMENT ON TABLE core.languages
   IS 'Language selection for internationalization support';
 
   CALL after_create_table('core.languages');
-
-  INSERT INTO core.languages
-  VALUES ('en', 'English')
-  ON CONFLICT DO NOTHING;
 COMMIT;
 
 -- table core.translations

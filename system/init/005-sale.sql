@@ -27,18 +27,20 @@ BEGIN;
 
   CREATE TABLE sale.plans (
     plan entity_scoped PRIMARY KEY,
-    users smallint NOT NULL DEFAULT 1,
-    monthly numeric(8,2) NOT NULL,
-    yearly numeric(10,2) NOT NULL,
     platform entity REFERENCES sale.platforms(platform),
-    codes smallint NOT NULL DEFAULT 0,
-    description text,
     extends_plan entity GENERATED ALWAYS AS (
       CASE
         WHEN position('.' IN plan) = 0 THEN NULL
         ELSE split_part(plan, '.', 1)
       END
     ) STORED REFERENCES sale.plans(plan),
+
+    users smallint NOT NULL DEFAULT 1,
+    monthly numeric(8,2) NOT NULL,
+    yearly numeric(10,2) NOT NULL,
+    codes smallint NOT NULL DEFAULT 0,
+    description text,
+
     is_hidden bool NOT NULL GENERATED ALWAYS AS (
       platform IS NOT NULL
     ) STORED,
