@@ -1,12 +1,12 @@
 #!/bin/bash
 
+RUNCORE="$0"
 GITROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"
 RUNCORE_DIR="$GITROOT_DIR/.runcore"
 RUNCORE_URL="http://github.com/creatiiv-io/runcore"
 
-# Function to display the runcore version
-version() {
-  # regular cli
+# display version
+function version() {
   [ ! -d "$RUNCORE_DIR/.git" ] && echo "v1.2-cli" && return
 
   # git tag
@@ -16,20 +16,20 @@ version() {
   [ $? -eq 0 ] && echo "$current_tag" || echo "v?.?-rouge-$(cd $RUNCORE_DIR; git rev-parse --short HEAD)"
 }
 
-# Function to display the tutorial
-tutorial() {
+# display tutorial
+function tutorial() {
   xdg-open https://runcore.dev/tutorial
 }
 
-extensions() {
+# find extension actions
+function extensions() {
   [ -d "$RUNCORE_DIR/scripts" ] && for extscript in $RUNCORE_DIR/scripts/runcore-*.sh; do
-    $extscript $0 $@
+      $extscript $@
   done
 }
 
-# Function to display help
-help() {
-  # switch through help scenarios
+# display help
+function help() {
   case $1 in
     init)
       echo "initialize the current directory or one passed with runcore"
@@ -42,31 +42,31 @@ help() {
       ;;
     *)
       # if we have an extension script run it 
-      [ -f "$RUNCORE_DIR/scripts/runcore-$2.sh" ] && exec $RUNCORE_DIR/scripts/runcore-$2.sh $0 $@
+      [ -f "$RUNCORE_DIR/scripts/runcore-$2.sh" ] && exec $RUNCORE_DIR/scripts/runcore-$2.sh $@
 
       # show the defualt help menu
-      echo "$0 $(version)"
+      echo "$RUNCORE $(version)"
       echo ""
       echo "  You can run the following commands:"
       echo ""
-      echo "  $0 init"
-      echo "  $0 version"
-      echo "  $0 help"
-      echo "  $0 tutorial"
+      echo "  $RUNCORE init"
+      echo "  $RUNCORE version"
+      echo "  $RUNCORE help"
+      echo "  $RUNCORE tutorial"
  
       # add extension scripts help
-      extensions help
+      extensions $@
 
       echo ""
       echo "  If you need help on any command just prepend help:"
       echo ""
-      echo "  $0 help [command]"
+      echo "  $RUNCORE help [command]"
       ;;
   esac
 }
 
-# Function to initialize runcore
-init() {
+# initialize repo
+function init() {
   [ -d "$RUNCORE_DIR" ] && echo "already initialized" && exit 1
   # if we are in the runcore repo show error
 
@@ -101,9 +101,9 @@ init() {
   echo "Don't forget to commit your changes to git"
 }
 
-# Check for other posibilities
-check() {
-  [ -f "$RUNCORE_DIR/runcore-$1.sh" ] && exec $RUNCORE_DIR/runcore-"$1".sh $0 ${@:2}
+# delegate to extensions
+function delegate() {
+  [ -f "$RUNCORE_DIR/runcore-$1.sh" ]; exec $RUNCORE_DIR/runcore-"$1".sh $@
 
   help $@
 }
@@ -114,5 +114,5 @@ case $1 in
   init) init $2;;
   tutorial) tutorial $@;;
   help) help ${@:2};;
-  *) check $@;;
+  *) delegate $@;;
 esac
