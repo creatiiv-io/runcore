@@ -11,8 +11,14 @@ INSTALL_NAME=${INSTALL_NAME:-runcore}
 
 # check for runcore
 if command -v runcore &> /dev/null; then
-  echo "already installed"
-  exit 1
+    read -p "Runcore is already installed do you want to upgrade? (Y/n): " upgrade
+    upgrade=${upgrade:-Y}  # Default to "Y" if no input is given
+    if [ "$upgrade" = "y" ] || [ "$upgrade" = "Y" ]; then
+      sudo rm -f "$INSTALL_DIR$INSTALL_NAME"
+    else
+      echo "Aborting instaliation."
+      exit 1
+    fi
 fi
 
 # check for docker
@@ -35,17 +41,16 @@ fi
 
 # Check the exit status
 if [ $? -eq 0 ]; then
-    echo "CONGRADULATIONS! - YOU DID IT!!!"
-    echo "runcore installed in $INSTALL_DIR$INSTALL_NAME"
-    [ -n "$dev_mode" ] && echo "this is linked for development mode"
-    echo ""
-    echo "  To get started you should try:"
-    echo ""
-    echo "  $INSTALL_NAME init"
-    echo "  $INSTALL_NAME dev"
-    echo "  $INSTALL_NAME tutorial"
-    echo ""
+  echo "CONGRADULATIONS! - YOU DID IT!!!"
+  echo "runcore installed in $INSTALL_DIR$INSTALL_NAME"
+  [ -n "$dev_mode" ] && echo "this is linked for development mode"
+  echo ""
+  echo "  To get started you should try:"
+  echo ""
+  echo "  $INSTALL_NAME init"
+  echo "  $INSTALL_NAME dev"
+  echo "  $INSTALL_NAME tutorial"
+  echo ""
 else
-    echo "Failed to download runcore cli at $INSTALL_DIR$INSTALL_NAME"
-    sudo rm -f "$INSTALL_DIR$INSTALL_NAME"
+  echo "Failed to download runcore cli at $INSTALL_DIR$INSTALL_NAME"
 fi
