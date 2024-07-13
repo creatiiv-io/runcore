@@ -103,10 +103,12 @@ function init() {
 
 # delegate to extensions
 function delegate() {
-  [ -f "$RUNCORE_DIR/runcore-$1.sh" ]; exec $RUNCORE_DIR/runcore-"$1".sh $@
+  [ -f "$RUNCORE_DIR/runcore-$1.sh" ] &&  exec $RUNCORE_DIR/runcore-"$1".sh $@
 
   help $@
 }
+
+echo "testing"
 
 # switch for base version
 case $1 in

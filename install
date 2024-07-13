@@ -24,14 +24,20 @@ fi
 #check for wget
 [ -z "WGET_VERSION" ] && echo "wget is not installed" && exit 1
 
-#download runcore cli
-sudo wget -qO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
-sudo chmod +x "$INSTALL_DIR$INSTALL_NAME"
+dev_mode="$(grep "RUNCORE_URL" $PWD/runcore 2>/dev/null)"
+
+if [ -z "$dev_mode" ]; then
+  sudo wget -qO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
+  sudo chmod +x "$INSTALL_DIR$INSTALL_NAME"
+else
+  sudo ln -s $PWD/runcore "$INSTALL_DIR$INSTALL_NAME"
+fi
 
 # Check the exit status
 if [ $? -eq 0 ]; then
     echo "CONGRADULATIONS! - YOU DID IT!!!"
-    echo "runcore in installed at $INSTALL_DIR$INSTALL_NAME"
+    echo "runcore installed in $INSTALL_DIR$INSTALL_NAME"
+    [ -n "$dev_mode" ] && echo "this is linked for development mode"
     echo ""
     echo "  To get started you should try:"
     echo ""
