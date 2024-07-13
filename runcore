@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RUNCORE="$0"
+RUNCORE="${0##*/}"
 GITROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"
 RUNCORE_DIR="$GITROOT_DIR/.runcore"
 RUNCORE_URL="http://github.com/creatiiv-io/runcore"
@@ -26,43 +26,6 @@ function extensions() {
   [ -d "$RUNCORE_DIR/scripts" ] && for extscript in $RUNCORE_DIR/scripts/runcore-*.sh; do
       $extscript $@
   done
-}
-
-# display help
-function help() {
-  case $1 in
-    init)
-      echo "initialize the current directory or one passed with runcore"
-      ;;
-    version)
-      echo "version number will either show the base CLI version or the specific version of runcore for your directory"
-      ;;
-    tutorial)
-      echo "learn all the features in a step by step totorial"
-      ;;
-    *)
-      # if we have an extension script run it 
-      [ -f "$RUNCORE_DIR/scripts/runcore-$2.sh" ] && exec $RUNCORE_DIR/scripts/runcore-$2.sh $@
-
-      # show the defualt help menu
-      echo "$RUNCORE $(version)"
-      echo ""
-      echo "  You can run the following commands:"
-      echo ""
-      echo "  $RUNCORE init"
-      echo "  $RUNCORE version"
-      echo "  $RUNCORE help"
-      echo "  $RUNCORE tutorial"
- 
-      # add extension scripts help
-      extensions $@
-
-      echo ""
-      echo "  If you need help on any command just prepend help:"
-      echo ""
-      echo "  $RUNCORE help [command]"
-      ;;
-  esac
 }
 
 # initialize repo
@@ -108,7 +71,44 @@ function delegate() {
   help $@
 }
 
-echo "testing"
+# display help
+function help() {
+  case $1 in
+    init)
+      echo "initialize the current directory or one passed with runcore"
+      ;;
+    version)
+      echo "version number will either show the base CLI version or the specific version of runcore for your directory"
+      ;;
+    tutorial)
+      echo "learn all the features in a step by step totorial"
+      ;;
+    *)
+      # if we have an extension script run it 
+      [ -f "$RUNCORE_DIR/scripts/runcore-$2.sh" ] && exec $RUNCORE_DIR/scripts/runcore-$2.sh $@
+
+      # show the defualt help menu
+      echo "runcore $(version) - cli for developers"
+      echo "Copyright 2024 - Creatiiv Artists LLC"
+      echo "Some rights reserved. Apache-2.0 License"
+      echo ""
+      echo "  You can run the following commands:"
+      echo ""
+      echo "  $RUNCORE init"
+      echo "  $RUNCORE version"
+      echo "  $RUNCORE help"
+      echo "  $RUNCORE tutorial"
+ 
+      # add extension scripts help
+      extensions $@
+
+      echo ""
+      echo "  If you need help on any command just prepend help:"
+      echo ""
+      echo "  $RUNCORE help [command]"
+      ;;
+  esac
+}
 
 # switch for base version
 case $1 in
