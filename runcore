@@ -103,7 +103,7 @@ function help() {
       extensions $@
 
       echo ""
-      echo "  If you need help on any command just prepend help:"
+      echo "  When you need help prepend 'help' to anything:"
       echo ""
       echo "  $RUNCORE help [command]"
       ;;
