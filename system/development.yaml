@@ -54,19 +54,19 @@ services:
       - "5432:5432"
     volumes:
       - type: bind
-        source: ./scripts/pg-start.sh
+        source: ./scripts/postgres/start.sh
         target: /usr/local/bin/pg_start
         read_only: true
       - type: bind
-        source: ./scripts/pg-initdb.sh
+        source: ./scripts/postgres/initdb.sh
         target: /usr/local/bin/pg_initdb
         read_only: true
       - type: bind
-        source: ./scripts/pg-dataload.sh
+        source: ./scripts/postgres/dataload.sh
         target: /usr/local/bin/pg_dataload
         read_only: true
       - type: bind
-        source: ./scripts/pg-tableorder.sh
+        source: ./scripts/postgres/tableorder.sh
         target: /usr/local/bin/pg_tableorder
         read_only: true
       - type: bind

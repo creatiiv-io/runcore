@@ -1,19 +1,19 @@
 #!/bin/bash
 
-RUNCORE="${0##*/}"
-GITROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"
-RUNCORE_DIR="$GITROOT_DIR/.runcore"
-RUNCORE_URL="http://github.com/creatiiv-io/runcore"
+RUNNAME="${0##*/}"
+GITROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+RUNCORE="$GITROOT/.$RUNNAME"
+INSTALL="http://github.com/creatiiv-io/runcore"
 
 # display version
 function version() {
-  [ ! -d "$RUNCORE_DIR/.git" ] && echo "v1.2-cli" && return
+  [ ! -d "$RUNCORE/.git" ] && echo "v1.2-cli" && return
 
   # git tag
-  git_tag=$(cd $RUNCORE_DIR; git describe --tags --exact-match 2>/dev/null)
+  git_tag=$(cd $RUNCORE; git describe --tags --exact-match 2>/dev/null)
 
   # show git version
-  [ $? -eq 0 ] && echo "$current_tag" || echo "v?.?-rouge-$(cd $RUNCORE_DIR; git rev-parse --short HEAD)"
+  [ $? -eq 0 ] && echo "$current_tag" || echo "v?.?-rouge-$(cd $RUNCORE; git rev-parse --short HEAD)"
 }
 
 # display tutorial
@@ -23,52 +23,87 @@ function tutorial() {
 
 # find extension actions
 function extensions() {
-  [ -d "$RUNCORE_DIR/scripts" ] && for extscript in $RUNCORE_DIR/scripts/runcore-*.sh; do
+  [ -d "$RUNCORE/scripts" ] && for extscript in $RUNCORE/scripts/actions/*.sh; do
       $extscript $@
+  done
+}
+
+# delegate to extensions
+function delegate() {
+  [ -f "$RUNCORE/actions/$1.sh" ] &&  exec "$RUNCORE/actions/$1.sh" $@
+
+  help $@
+}
+
+# ask a question
+function answer() {
+    read -p "$1 (Y/n): " -r
+    echo
+    [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]
+}
+
+# compare files
+function compare() {
+  [ "$(md5sum "$1" | sed 's/ .*//')" = "$(md5sum "$2" | sed 's/ .*//')" ]
+}
+
+# copy directory
+function copydir() {
+  mkdir -p "$2"
+  for file in "$1"/*; do
+    local dest="$2/${file##*/}"
+
+    [ ! -e "$dest" ] || compare "$dest" "$file" || answer "Replace /core/${dir##*/}/${file##*/}?" && echo cp "$file" "$dest"
+  done
+}
+
+# install core
+function install-core-files() {
+  for dir in "$RUNCORE"/core/*; do
+    copydir "$dir" "$GITROOT/core/${dir##*/}"
   done
 }
 
 # initialize repo
 function init() {
-  [ -d "$RUNCORE_DIR" ] && echo "already initialized" && exit 1
-  # if we are in the runcore repo show error
-
-  # Check if we are not in a Git repository
-  if [ -z "$GITROOT_DIR" ]; then
-    read -p "You are not in a Git repository. Do you want to initialize one? (Y/n): " init_git
-    init_git=${init_git:-Y}  # Default to "Y" if no input is given
-    if [ "$init_git" = "y" ] || [ "$init_git" = "Y" ]; then
-      git init
-      GITROOT_DIR=.
-      RUNCORE_DIR=./.runcore
+  # check if we are not in a git repository
+  if [ -z "$GITROOT" ]; then
+    if answer "You are not in a repo. Run git init?"; then
+      git init &>/dev/null
+      GITROOT=.
+      RUNCORE=./.runcore
     else
       echo "Initialization aborted."
       exit 1
     fi
   fi
 
-  local is_runcore="$(grep "RUNCORE_DIR" $GITROOT_DIR/runcore 2>/dev/null)"
+# check if we are in development directory
+  local is_dev="$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)"
+  local is_old="$(ls "$RUNCORE" 2>/dev/null)"
 
-  [ -n "$is_runcore" ] && echo "cannot initialize in its own source directory" && exit 1
+  # if we are in the runcore repo show error
+  [ -n "${is_dev:+x}" ] && echo "cannot initialize in runcore source directory" && exit 1
 
-  #install runcore
-  (cd "$GITROOT_DIR"; git submodule add "$RUNCORE_URL" .runcore)
+  #install runcore submodule
+  (cd "$GITROOT"; git submodule add "$INSTALL" .runcore) &>/dev/null
+
+# install core files
+  install-core-files
 
   # notify of success
-  echo "CONGRADULATIONS! - You have Runcore!"
-  echo ""
+  if [ -z "${is_old:+x}" ]; then
+    echo "installed runcore"
+    echo ""
+  else
+    echo "reinstalled runcore"
+    echo ""
+  fi
 
   extensions init
-  
+
   echo ""
   echo "Don't forget to commit your changes to git"
-}
-
-# delegate to extensions
-function delegate() {
-  [ -f "$RUNCORE_DIR/runcore-$1.sh" ] &&  exec $RUNCORE_DIR/runcore-"$1".sh $@
-
-  help $@
 }
 
 # display help
@@ -85,7 +120,7 @@ function help() {
       ;;
     *)
       # if we have an extension script run it 
-      [ -f "$RUNCORE_DIR/scripts/runcore-$2.sh" ] && exec $RUNCORE_DIR/scripts/runcore-$2.sh $@
+      [ -f "$RUNCORE/scripts/runcore-$2.sh" ] && exec $RUNCORE/scripts/runcore-$2.sh $@
 
       # show the defualt help menu
       echo "runcore $(version) - cli for developers"
@@ -94,10 +129,10 @@ function help() {
       echo ""
       echo "  You can run the following commands:"
       echo ""
-      echo "  $RUNCORE init"
-      echo "  $RUNCORE version"
-      echo "  $RUNCORE help"
-      echo "  $RUNCORE tutorial"
+      echo "  $RUNNAME init"
+      echo "  $RUNNAME version"
+      echo "  $RUNNAME help"
+      echo "  $RUNNAME tutorial"
  
       # add extension scripts help
       extensions $@
@@ -105,7 +140,7 @@ function help() {
       echo ""
       echo "  When you need help prepend 'help' to anything:"
       echo ""
-      echo "  $RUNCORE help [command]"
+      echo "  $RUNNAME help [command]"
       ;;
   esac
 }

@@ -7,7 +7,7 @@ function help() {
       echo "start a local dev environment"
       ;;
     *)
-      echo "  $RUNCORE up"
+      echo "  $RUNNAME up"
       ;;
   esac
 }
