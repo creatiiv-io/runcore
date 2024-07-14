@@ -9,7 +9,7 @@ INSTALL_DIR=${INSTALL_DIR:-/usr/local/bin/}
 INSTALL_NAME=${1##*/}
 INSTALL_NAME=${INSTALL_NAME:-runcore}
 
-# also uses sed, grep, ls and find
+# also uses sed, grep, ls and find env
 
 # check for runcore
 if command -v runcore &> /dev/null; then

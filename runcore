@@ -1,10 +1,12 @@
 #!/bin/bash
 
-INSTALL="http://github.com/creatiiv-io/runcore"
 RUNNAME="${0##*/}"
 GITROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-DEVELOP="$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)"
-[ -n "${DEVELOP:+x}" ] && RUNCORE="$GITROOT" || RUNCORE="$GITROOT/.$RUNNAME"
+RUNCORE="$GITROOT/.$RUNNAME"
+INSTALL="http://github.com/creatiiv-io/runcore"
+DEVELOP=$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)
+
+[ -n "${DEVELOP:+x}" ] && RUNCORE="$GITROOT"
 
 # display version
 function version() {
@@ -61,6 +63,16 @@ function copydir() {
   done
 }
 
+#environment core
+function cleanroom() {
+  env -i bash -c "
+    [ -f '$RUNCORE/system/default.env' ] && source '$RUNCORE/system/default.env'
+    [ -f  '$GITROOT/.env' ] && source '$GITROOT/.env'
+    [ -f '$RUNCORE/system/require.env' ] && source '$RUNCORE/system/require.env'
+    $@
+  "
+}
+
 # initialize repo
 function init() {
   # check if we are not in a git repository
@@ -79,7 +91,10 @@ function init() {
   [ -n "${DEVELOP:+x}" ] && echo "cannot initialize in runcore source directory" && exit 1
 
   #install runcore submodule
-  (cd "$GITROOT"; git submodule add "$INSTALL" ".$RUNNAME") &>/dev/null
+  (
+    cd "$GITROOT"
+    git submodule add "$INSTALL" ".$RUNNAME"
+  ) &>/dev/null
 
   # copy all core files
   copydir "$RUNCORE/core/" "$GITROOT/core/"
@@ -118,7 +133,7 @@ function help() {
       echo "© 2024 Creatiiv Artists LLC"
       echo "Apache-2.0 license..."
       echo ""
-      echo "  Accepted commands:"
+      echo "Commands:"
       echo ""
       echo "  $RUNNAME init"
       echo "  $RUNNAME version"
@@ -129,7 +144,7 @@ function help() {
       extensions $@
 
       echo ""
-      echo "  Explain commands:"
+      echo "Help:"
       echo ""
       echo "  $RUNNAME help [command]"
       ;;
