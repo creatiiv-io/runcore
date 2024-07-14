@@ -3,11 +3,11 @@
 # display help
 function help() {
   case $1 in
-    down)
-      echo "stop a local dev environment"
+    reset)
+      echo "reset database"
       ;;
     *)
-      echo "  $RUNNAME down"
+      echo "  $RUNNAME reset"
       ;;
   esac
 }
@@ -15,6 +15,5 @@ function help() {
 # run something
 case $1 in
   help) help ${@:2};;
-  down) down ${@:2};;
+  reset) reset ${@:2};;
 esac
-

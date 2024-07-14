@@ -3,11 +3,11 @@
 # display help
 function help() {
   case $1 in
-    down)
-      echo "stop a local dev environment"
+    backup)
+      echo "backup everything to a zipfile"
       ;;
     *)
-      echo "  $RUNNAME down"
+      echo "  $RUNNAME backup"
       ;;
   esac
 }
@@ -15,6 +15,5 @@ function help() {
 # run something
 case $1 in
   help) help ${@:2};;
-  down) down ${@:2};;
+  backup) backup ${@:2};;
 esac
-

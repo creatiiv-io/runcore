@@ -1,49 +1,28 @@
 #!/bin/bash
 
-RUNNAME="${0##*/}"
-GITROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-RUNCORE="$GITROOT/.$RUNNAME"
-INSTALL="http://github.com/creatiiv-io/runcore"
-DEVELOP=$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)
+export RUNNAME="${0##*/}"
+export GITROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+export RUNCORE="$GITROOT/.$RUNNAME"
+export INSTALL="http://github.com/creatiiv-io/runcore"
+export DEVELOP=$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)
 
 [ -n "${DEVELOP:+x}" ] && RUNCORE="$GITROOT"
-
-# display version
-function version() {
-  # if not in git return
-  [ ! -d "$RUNCORE/.git" ] && echo "v1.2-cli" && return
-
-  # git tag
-  git_tag=$(cd $RUNCORE; git describe --tags --exact-match 2>/dev/null)
-
-  # show git version
-  [ $? -eq 0 ] && echo "$current_tag" || echo "vBeta-$(cd $RUNCORE; git rev-parse --short HEAD)"
-}
-
-# display tutorial
-function tutorial() {
-  xdg-open https://runcore.dev/tutorial
-}
-
-# find extension actions
-function extensions() {
-  [ -d "$RUNCORE/scripts" ] && for extscript in $RUNCORE/scripts/actions/*.sh; do
-    $extscript $@
-  done
-}
-
-# delegate to extensions
-function delegate() {
-  [ -f "$RUNCORE/actions/$1.sh" ] &&  exec "$RUNCORE/actions/$1.sh" $@
-
-  help $@
-}
 
 # ask a question
 function answer() {
     read -p "$1 (Y/n): " -r
     echo
     [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]
+}
+
+#environment core
+function cleanroom() {
+  env -i bash -c "
+    [ -f '$RUNCORE/system/default.env' ] && source '$RUNCORE/system/default.env'
+    [ -f  '$GITROOT/.env' ] && source '$GITROOT/.env'
+    [ -f '$RUNCORE/system/require.env' ] && source '$RUNCORE/system/require.env'
+    $@
+  "
 }
 
 # compare files
@@ -63,14 +42,59 @@ function copydir() {
   done
 }
 
-#environment core
-function cleanroom() {
-  env -i bash -c "
-    [ -f '$RUNCORE/system/default.env' ] && source '$RUNCORE/system/default.env'
-    [ -f  '$GITROOT/.env' ] && source '$GITROOT/.env'
-    [ -f '$RUNCORE/system/require.env' ] && source '$RUNCORE/system/require.env'
-    $@
-  "
+# delegate to extensions
+function delegate() {
+  [ -f "$RUNCORE/actions/$1.sh" ] &&  exec "$RUNCORE/actions/$1.sh" $@
+
+  help $@
+}
+
+# find extension actions
+function extensions() {
+  [ ! -d "$RUNCORE/scripts/actions" ] && return
+
+  for extscript in $RUNCORE/scripts/actions/*.sh; do
+    $extscript $@
+  done
+}
+
+# display help
+function help() {
+  case $1 in
+    init)
+      echo "initialize the current directory or one passed with runcore"
+      ;;
+    version)
+      echo "version number will either show the base CLI version or the specific version of runcore for your directory"
+      ;;
+    tutorial)
+      echo "learn all the features in a step by step totorial"
+      ;;
+    *)
+      # if we have an extension script run it 
+      [ -f "$RUNCORE/scripts/actions/$2.sh" ] && exec $RUNCORE/scripts/actions/$2.sh $@
+
+      # show the defualt help menu
+      echo "RUNCORE CLI - $(version)"
+      echo "© 2024 Creatiiv Artists LLC"
+      echo "Apache-2.0 license..."
+      echo ""
+      echo "Commands:"
+      echo ""
+      echo "  $RUNNAME init"
+      echo "  $RUNNAME version"
+      echo ""
+ 
+      # show extension
+      extensions help
+
+      echo ""
+      echo "Help:"
+      echo ""
+      echo "  $RUNNAME help [command]"
+      echo "  $RUNNAME tutorial"
+      ;;
+  esac
 }
 
 # initialize repo
@@ -112,43 +136,21 @@ function init() {
   echo "  git commit -m '$RUNNAME ${is_old:+re}installed'"
 }
 
-# display help
-function help() {
-  case $1 in
-    init)
-      echo "initialize the current directory or one passed with runcore"
-      ;;
-    version)
-      echo "version number will either show the base CLI version or the specific version of runcore for your directory"
-      ;;
-    tutorial)
-      echo "learn all the features in a step by step totorial"
-      ;;
-    *)
-      # if we have an extension script run it 
-      [ -f "$RUNCORE/scripts/actions/$2.sh" ] && exec $RUNCORE/scripts/actions/$2.sh $@
+# display tutorial
+function tutorial() {
+  xdg-open https://runcore.dev/tutorial
+}
 
-      # show the defualt help menu
-      echo "RUNCORE CLI - $(version)"
-      echo "© 2024 Creatiiv Artists LLC"
-      echo "Apache-2.0 license..."
-      echo ""
-      echo "Commands:"
-      echo ""
-      echo "  $RUNNAME init"
-      echo "  $RUNNAME version"
-      echo "  $RUNNAME help"
-      echo "  $RUNNAME tutorial"
- 
-      # add extension scripts help
-      extensions $@
+# display version
+function version() {
+  # if not in git return
+  [ ! -d "$RUNCORE/.git" ] && echo "v1.2-cli" && return
 
-      echo ""
-      echo "Help:"
-      echo ""
-      echo "  $RUNNAME help [command]"
-      ;;
-  esac
+  # git tag
+  git_tag=$(cd $RUNCORE; git describe --tags --exact-match 2>/dev/null)
+
+  # show git version
+  [ $? -eq 0 ] && echo "$current_tag" || echo "vBeta-$(cd $RUNCORE; git rev-parse --short HEAD)"
 }
 
 # switch for base version
