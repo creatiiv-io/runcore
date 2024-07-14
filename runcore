@@ -1,19 +1,21 @@
 #!/bin/bash
 
+INSTALL="http://github.com/creatiiv-io/runcore"
 RUNNAME="${0##*/}"
 GITROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-RUNCORE="$GITROOT/.$RUNNAME"
-INSTALL="http://github.com/creatiiv-io/runcore"
+DEVELOP="$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)"
+[ -n "${DEVELOP:+x}" ] && RUNCORE="$GITROOT" || RUNCORE="$GITROOT/.$RUNNAME"
 
 # display version
 function version() {
+  # if not in git return
   [ ! -d "$RUNCORE/.git" ] && echo "v1.2-cli" && return
 
   # git tag
   git_tag=$(cd $RUNCORE; git describe --tags --exact-match 2>/dev/null)
 
   # show git version
-  [ $? -eq 0 ] && echo "$current_tag" || echo "v?.?-rouge-$(cd $RUNCORE; git rev-parse --short HEAD)"
+  [ $? -eq 0 ] && echo "$current_tag" || echo "vBeta-$(cd $RUNCORE; git rev-parse --short HEAD)"
 }
 
 # display tutorial
@@ -24,7 +26,7 @@ function tutorial() {
 # find extension actions
 function extensions() {
   [ -d "$RUNCORE/scripts" ] && for extscript in $RUNCORE/scripts/actions/*.sh; do
-      $extscript $@
+    $extscript $@
   done
 }
 
@@ -44,23 +46,18 @@ function answer() {
 
 # compare files
 function compare() {
-  [ "$(md5sum "$1" | sed 's/ .*//')" = "$(md5sum "$2" | sed 's/ .*//')" ]
+  [ "$(md5sum "$1" | sed "s/ .*//")" = "$(md5sum "$2" | sed "s/ .*//")" ]
 }
 
 # copy directory
 function copydir() {
-  mkdir -p "$2"
-  for file in "$1"/*; do
-    local dest="$2/${file##*/}"
+  # loop through files
+  for file in $(find "$1" -type f); do
+    local dest="$2/${file#$1}"
 
-    [ ! -e "$dest" ] || compare "$dest" "$file" || answer "Replace /core/${dir##*/}/${file##*/}?" && echo cp "$file" "$dest"
-  done
-}
+    mkdir -p "${dest%/*}"
 
-# install core
-function install-core-files() {
-  for dir in "$RUNCORE"/core/*; do
-    copydir "$dir" "$GITROOT/core/${dir##*/}"
+    [ ! -e "$dest" ] || compare "$dest" "$file" || answer "Replace /core/${dir##*/}/${file##*/}?" && cp "$file" "$dest"
   done
 }
 
@@ -70,40 +67,34 @@ function init() {
   if [ -z "$GITROOT" ]; then
     if answer "You are not in a repo. Run git init?"; then
       git init &>/dev/null
-      GITROOT=.
-      RUNCORE=./.runcore
+      GITROOT="."
+      RUNCORE="./.$RUNNAME"
     else
       echo "Initialization aborted."
       exit 1
     fi
   fi
 
-# check if we are in development directory
-  local is_dev="$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)"
-  local is_old="$(ls "$RUNCORE" 2>/dev/null)"
-
   # if we are in the runcore repo show error
-  [ -n "${is_dev:+x}" ] && echo "cannot initialize in runcore source directory" && exit 1
+  [ -n "${DEVELOP:+x}" ] && echo "cannot initialize in runcore source directory" && exit 1
 
   #install runcore submodule
-  (cd "$GITROOT"; git submodule add "$INSTALL" .runcore) &>/dev/null
+  (cd "$GITROOT"; git submodule add "$INSTALL" ".$RUNNAME") &>/dev/null
 
-# install core files
-  install-core-files
+  # copy all core files
+  copydir "$RUNCORE/core/" "$GITROOT/core/"
 
-  # notify of success
-  if [ -z "${is_old:+x}" ]; then
-    echo "installed runcore"
-    echo ""
-  else
-    echo "reinstalled runcore"
-    echo ""
-  fi
+  local is_old="$(ls "$RUNCORE" 2>/dev/null)"
+
+  echo "$RUNNAME ${is_old:+re}installed - YAY!!!"
 
   extensions init
 
   echo ""
-  echo "Don't forget to commit your changes to git"
+  echo "Don't forget to commit changes:"
+  echo ""
+  echo "  git add *"
+  echo "  git commit -m '$RUNNAME ${is_old:+re}installed'"
 }
 
 # display help
@@ -120,14 +111,14 @@ function help() {
       ;;
     *)
       # if we have an extension script run it 
-      [ -f "$RUNCORE/scripts/runcore-$2.sh" ] && exec $RUNCORE/scripts/runcore-$2.sh $@
+      [ -f "$RUNCORE/scripts/actions/$2.sh" ] && exec $RUNCORE/scripts/actions/$2.sh $@
 
       # show the defualt help menu
-      echo "runcore $(version) - cli for developers"
-      echo "Copyright 2024 - Creatiiv Artists LLC"
-      echo "Some rights reserved. Apache-2.0 License"
+      echo "RUNCORE CLI - $(version)"
+      echo "© 2024 Creatiiv Artists LLC"
+      echo "Apache-2.0 license..."
       echo ""
-      echo "  You can run the following commands:"
+      echo "  Accepted commands:"
       echo ""
       echo "  $RUNNAME init"
       echo "  $RUNNAME version"
@@ -138,7 +129,7 @@ function help() {
       extensions $@
 
       echo ""
-      echo "  When you need help prepend 'help' to anything:"
+      echo "  Explain commands:"
       echo ""
       echo "  $RUNNAME help [command]"
       ;;
