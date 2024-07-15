@@ -132,8 +132,8 @@ function help() {
 
       # show the defualt help menu
       echo "RUNCORE CLI - $(version)"
+      echo "Hasura on Steroids - Apache-2.0"
       echo "© 2024 Creatiiv Artists LLC"
-      echo "Apache-2.0 license..."
       echo ""
       echo "Commands:"
       echo ""
@@ -213,7 +213,7 @@ function version() {
   git_tag=$(cd $RUNCORE; git describe --tags --exact-match 2>/dev/null)
 
   # show git version
-  [ $? -eq 0 ] && echo "$current_tag" || echo "vBeta-$(cd $RUNCORE; git rev-parse --short HEAD)"
+  echo "${git_tag:-vBeta}-$(cd $RUNCORE; git rev-parse --short HEAD)"
 }
 
 # switch for base version
