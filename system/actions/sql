@@ -18,11 +18,11 @@ function completion() {
 # display help
 function help() {
   case $1 in
-    up)
-      echo "start a local dev environment"
+    sql)
+      echo "sql console for dev environment"
       ;;
     *)
-      echo "  $RUNNAME up"
+      echo "  $RUNNAME sql"
       ;;
   esac
 }
