@@ -91,6 +91,11 @@ function containers() {
   cleanroom docker compose -f "$RUNCORE/system/$1.yaml" "${@:2}"
 }
 
+# exec docker container
+function container() {
+  docker exec -it "$ENVROOT-$1-1" "${@:2}"
+}
+
 # delegate to extensions
 function delegate() {
   if [ -f "$ACTIONS/$1" ]; then
@@ -179,6 +184,7 @@ function init() {
 
   # copy all core files
   copydir "$RUNCORE/core/" "$GITROOT/core/"
+  copydir "$RUNCORE/public/" "$GITROOT/public/"
 
   local is_old="$(ls "$RUNCORE" 2>/dev/null)"
 
