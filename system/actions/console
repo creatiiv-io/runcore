@@ -3,11 +3,11 @@
 # display help
 function help() {
   case $1 in
-    serve)
-      echo "start a local dev environment"
+    console)
+      echo "start a local console"
       ;;
     *)
-      echo "  $RUNNAME serve"
+      echo "  $RUNNAME console"
       ;;
   esac
 }
@@ -15,5 +15,5 @@ function help() {
 # run something
 case $1 in
   help) help ${@:2};;
-  serve) serve ${@:2};;
+  console) console ${@:2};;
 esac

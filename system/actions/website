@@ -3,11 +3,11 @@
 # display help
 function help() {
   case $1 in
-    deploy)
-      echo "start a local dev environment"
+    website)
+      echo "launch website"
       ;;
     *)
-      echo "  $RUNNAME deploy"
+      echo "  $RUNNAME website"
       ;;
   esac
 }
@@ -15,5 +15,5 @@ function help() {
 # run something
 case $1 in
   help) help ${@:2};;
-  deploy) deploy ${@:2};;
+  website) website ${@:2};;
 esac

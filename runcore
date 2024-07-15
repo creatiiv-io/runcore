@@ -2,24 +2,28 @@
 
 export RUNNAME="${0##*/}"
 export GITROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-export RUNCORE="$GITROOT/.$RUNNAME"
+export RUNCORE="$GITROOT/.runcore"
 export INSTALL="http://github.com/creatiiv-io/runcore"
 export DEVELOP=$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)
+export ENVROOT="$(cd "$GITROOT"; basename "$PWD")"
+export ENVNAME="local"
 
-[ -n "${DEVELOP:+x}" ] && RUNCORE="$GITROOT"
+[ -n "${DEVELOP:+x}" ] && export RUNCORE="$GITROOT"
+
+export ACTIONS="$RUNCORE/system/actions"
 
 #environment core
 function cleanroom() {
-  env -i bash -c "
-    (
-      [ -f '$RUNCORE/system/default.env' ] && cat '$RUNCORE/system/default.env'
-      [ -f '$GITROOT/core/config/base.config' ] && sed -E 's/\./_/g; s/([^:]+):(.*)/\U\1\E="\2"/' '$GITROOT/core/config/base.config'
-      [ -f '$RUNCORE/system/require.env' ] && cat '$RUNCORE/system/require.env'
-      echo RUNCORE='"'$RUNCORE'"'
-      echo GITROOT='"'$GITROOT'"'
-    ) | eval
-    $@
-  "
+  {
+    [ -f "$RUNCORE/system/default.env" ] && cat "$RUNCORE/system/default.env" | sed 's/^/export /'
+    [ -f "$GITROOT/core/config/env.$ENVNAME" ] && sed -E 's/\./_/g; s/([^:]+):(.*)/\U\1\E="\2"/' "$GITROOT/core/config/env.$ENVNAME" | sed 's/^/export /'
+    [ -f "$RUNCORE/system/require.env" ] && cat "$RUNCORE/system/require.env" | sed 's/^/export /'
+    echo RUNCORE='"'$RUNCORE'"' | sed 's/^/export /'
+    echo GITROOT='"'$GITROOT'"' | sed 's/^/export /'
+    echo ENVROOT='"'$ENVROOT'"' | sed 's/^/export /'
+    echo cd '"'$GITROOT'"'
+    echo $@
+  } | env -i bash
 }
 
 # ask a question
@@ -36,14 +40,38 @@ function compare() {
 
 # tab completion
 function completion(){
-  local words=( $COMP_LINE )
-  local action=${words[1]}
-  local subact=${words[@]:2}
+  local words=()
 
-  [ -z "$action" ] && compgen -W "init help tutorial version $(ls "$RUNCORE/scripts/actions" 2>/dev/null)" -- "$2" && return
-  [ "$action" = "help" ] && compgen -W "init $(ls "$RUNCORE/scripts/actions" 2>/dev/null)" -- "$2" && return
-  [ "$action" = "init" ] &&   
-  [ -f "$RUNCORE/scripts/actions/$action" ] && "$RUNCORE/scripts/actions/$action" $'\t' "${subacts[@]}"
+  IFS=' ' read -r -a words <<< "$COMP_LINE"
+  [[ "$COMP_LINE" == *' ' ]] && words+=("")
+
+  [ -z "${COMP_LINE:+x}" ] && words=( "$RUNNAME" "$@" )
+
+  local count=${#words[@]}
+  local action="${words[1]}"
+  local subact=( "${words[@]:2}" )
+
+  case "$action" in
+    init|version|tutorial)
+      return
+      ;;
+    help)
+      if [[ $count < 4 ]]; then
+        compgen -W "init $(ls "$ACTIONS" 2>/dev/null)" -- "$subact"
+        return
+      else
+        action="$subact"
+        subact=( help "${subact[@]:2}" )
+      fi
+      ;;
+    *)
+      if [[ $count < 3 ]]; then
+        compgen -W "init help tutorial version $(ls "$ACTIONS" 2>/dev/null)" -- "$action"
+        return
+      fi
+  esac
+
+  [ -f "$ACTIONS/$action" ] && source "$ACTIONS/$action" $'\t' "$action" "${subact[@]}"
 }
 
 # copy directory
@@ -58,19 +86,26 @@ function copydir() {
   done
 }
 
+# run docker containers
+function containers() {
+  cleanroom docker compose -f "$RUNCORE/system/$1.yaml" "${@:2}"
+}
+
 # delegate to extensions
 function delegate() {
-  [ -f "$RUNCORE/scripts/actions/$1" ] &&  exec "$RUNCORE/scripts/actions/$1" $@
-
-  help $@
+  if [ -f "$ACTIONS/$1" ]; then
+    source "$ACTIONS/$1" "$@"
+  else
+    help "$@"
+  fi
 }
 
 # find extension actions
 function extensions() {
-  [ ! -d "$RUNCORE/scripts/actions" ] && return
+  [ ! -d "$ACTIONS" ] && echo "no actions $ACTIONS" && return
 
-  for extscript in $RUNCORE/scripts/actions/*; do
-    $extscript $@
+  for extscript in $ACTIONS/*; do
+    $extscript "$@"
   done
 }
 
@@ -88,7 +123,7 @@ function help() {
       ;;
     *)
       # if we have an extension script run it 
-      [ -f "$RUNCORE/scripts/actions/$2" ] && exec $RUNCORE/scripts/actions/$2 $@
+      [ -f "$ACTIONS/$2" ] && source $ACTIONS/$2 $@
 
       # show the defualt help menu
       echo "RUNCORE CLI - $(version)"
@@ -115,12 +150,18 @@ function help() {
 
 # initialize repo
 function init() {
+  if [ -n "$1" ]; then
+    mkdir -p "$1"
+    cd "$1"
+    exec "$RUNNAME" init
+  fi
+
   # check if we are not in a git repository
   if [ -z "$GITROOT" ]; then
     if confirm "You are not in a repo. Run git init?"; then
       git init &>/dev/null
       GITROOT="."
-      RUNCORE="./.$RUNNAME"
+      RUNCORE="./.runcore"
     else
       echo "Initialization aborted."
       exit 1
@@ -133,7 +174,7 @@ function init() {
   #install runcore submodule
   (
     cd "$GITROOT"
-    git submodule add "$INSTALL" ".$RUNNAME"
+    git submodule add "$INSTALL" ".runcore"
   ) &>/dev/null
 
   # copy all core files
@@ -171,10 +212,10 @@ function version() {
 
 # switch for base version
 case $1 in
-  $'\t') completion;;
+  $'\t') completion "${@:2}";;
   version) version;;
-  init) init $2;;
-  tutorial) tutorial $@;;
-  help) help ${@:2};;
-  *) delegate $@;;
+  init) init "$2";;
+  tutorial) tutorial "$@";;
+  help) help "${@:2}";;
+  *) delegate "$@";;
 esac

@@ -1,3 +1,4 @@
+name: ${ENVROOT}
 services:
   auth:
     image: nhost/hasura-auth:0.31.0
@@ -54,7 +55,7 @@ services:
       - "5432:5432"
     volumes:
       - type: bind
-        source: ${RUNCORE}/scripts/postgres/
+        source: ${RUNCORE}/system/pg_scripts/
         target: /usr/local/sbin/
         read_only: true
       - type: bind

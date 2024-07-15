@@ -3,11 +3,11 @@
 # display help
 function help() {
   case $1 in
-    console)
-      echo "start a local dev environment"
+    deploy)
+      echo "deploy a production environment"
       ;;
     *)
-      echo "  $RUNNAME console"
+      echo "  $RUNNAME deploy"
       ;;
   esac
 }
@@ -15,5 +15,5 @@ function help() {
 # run something
 case $1 in
   help) help ${@:2};;
-  console) console ${@:2};;
+  deploy) deploy ${@:2};;
 esac
