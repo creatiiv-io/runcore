@@ -1,58 +1,77 @@
 #!/bin/bash
 
 RUNCORE_URL="https://raw.githubusercontent.com/creatiiv-io/runcore/main/runcore"
+
 DOCKER_VERSION=$(docker --version 2>/dev/null)
 GIT_VERSION=$(git --version 2>/dev/null)
-WGET_INSTALL=$(wget --version 2>/dev/null | head -n1)
-INSTALL_DIR=${1%/*}
-INSTALL_DIR=${INSTALL_DIR:-/usr/local/bin/}
-INSTALL_NAME=${1##*/}
-INSTALL_NAME=${INSTALL_NAME:-runcore}
+WGET_VERSION=$(wget --version 2>/dev/null | head -n1)
 
-# also uses sed, grep, ls and find env
+DIRNAME=${1%/*}
+DIRNAME=${DIRNAME:-/usr/local/bin}
+RUNNAME=${1##*/}
+RUNNAME=${RUNNAME:-runcore}
+COMPDIR="/usr/share/bash-completion/completions"
+
+# also uses sed, grep, ls, find, env, tee
+
+# ask a question
+function confirm() {
+    read -n 1 -p "$1 (Y/n): " -r
+    echo
+    [[ $REPLY =~ ^[Yy]?$ ]]
+}
+
+# setup tab completion
+function setup_completion() {
+  [ -d "$COMPDIR" ] && sudo tee "${COMPDIR}/${RUNNAME}" > eval <<EOF
+#!/bin/bash
+
+complete -C "${RUNNAME} $'\t'" ${RUNNAME}
+EOF
+}
 
 # check for runcore
 if command -v runcore &> /dev/null; then
-    read -p "Runcore is already installed do you want to upgrade? (Y/n): " upgrade
-    upgrade=${upgrade:-Y}  # Default to "Y" if no input is given
-    if [ "$upgrade" = "y" ] || [ "$upgrade" = "Y" ]; then
-      sudo rm -f "$INSTALL_DIR$INSTALL_NAME"
-    else
-      echo "Aborting instaliation."
-      exit 1
-    fi
+  if confirm "Runcore is already installed do you want to reinstall?"; then
+    sudo rm -f "${DIRNAME}/${RUNNAME}"
+  else
+    echo "Aborting instaliation."
+    exit 1
+  fi
 fi
 
 # check for docker
 [ -z "DOCKER_VERSION" ] && echo "docker is not installed" && exit 1
 
-#check for git
+# check for git
 [ -z "GIT_VERSION" ] && echo "git is not installed" && exit 1
 
-#check for wget
+# check for wget
 [ -z "WGET_VERSION" ] && echo "wget is not installed" && exit 1
 
-dev_mode="$(grep "RUNCORE_URL" $PWD/runcore 2>/dev/null)"
-
-if [ -z "$dev_mode" ]; then
-  sudo wget -qO "$INSTALL_DIR$INSTALL_NAME" "$RUNCORE_URL"
-  sudo chmod +x "$INSTALL_DIR$INSTALL_NAME"
+# check for dev mode
+dev_mode="$(grep "RUNCORE" "${PWD}/runcore" 2>/dev/null)"
+if [ -z "${dev_mode:+x}" ]; then
+  sudo wget -qO "${DIRNAME}/${RUNNAME}" "${RUNCORE_URL}"
+  sudo chmod +x "${DIRNAME}/${RUNNAME}"
 else
-  sudo ln -s $PWD/runcore "$INSTALL_DIR$INSTALL_NAME"
+  sudo ln -s ${PWD}/runcore "${DIRNAME}/${RUNNAME}"
 fi
 
 # Check the exit status
-if [ $? -eq 0 ]; then
+if [ $? = 0 ]; then
+  setup_completion
+
   echo "CONGRADULATIONS! - YOU DID IT!!!"
-  echo "runcore installed in $INSTALL_DIR$INSTALL_NAME"
-  [ -n "$dev_mode" ] && echo "this is linked for development mode"
+  echo "runcore installed in ${DIRNAME}/${RUNNAME}"
+  [ -n "${dev_mode:+x}" ] && echo "this is linked for development mode"
   echo ""
   echo "  To get started you should try:"
   echo ""
-  echo "  $INSTALL_NAME init"
-  echo "  $INSTALL_NAME dev"
-  echo "  $INSTALL_NAME tutorial"
+  echo "  ${RUNNAME} init"
+  echo "  ${RUNNAME} dev"
+  echo "  ${RUNNAME} tutorial"
   echo ""
 else
-  echo "Failed to download runcore cli at $INSTALL_DIR$INSTALL_NAME"
+  echo "Failed to download runcore cli at ${DIRNAME}/${RUNNAME}"
 fi

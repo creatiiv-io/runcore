@@ -8,26 +8,42 @@ export DEVELOP=$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)
 
 [ -n "${DEVELOP:+x}" ] && RUNCORE="$GITROOT"
 
-# ask a question
-function answer() {
-    read -p "$1 (Y/n): " -r
-    echo
-    [[ -z $REPLY || $REPLY =~ ^[Yy]$ ]]
-}
-
 #environment core
 function cleanroom() {
   env -i bash -c "
-    [ -f '$RUNCORE/system/default.env' ] && source '$RUNCORE/system/default.env'
-    [ -f  '$GITROOT/.env' ] && source '$GITROOT/.env'
-    [ -f '$RUNCORE/system/require.env' ] && source '$RUNCORE/system/require.env'
+    (
+      [ -f '$RUNCORE/system/default.env' ] && cat '$RUNCORE/system/default.env'
+      [ -f '$GITROOT/core/config/base.config' ] && sed -E 's/\./_/g; s/([^:]+):(.*)/\U\1\E="\2"/' '$GITROOT/core/config/base.config'
+      [ -f '$RUNCORE/system/require.env' ] && cat '$RUNCORE/system/require.env'
+      echo RUNCORE='"'$RUNCORE'"'
+      echo GITROOT='"'$GITROOT'"'
+    ) | eval
     $@
   "
+}
+
+# ask a question
+function confirm() {
+    read -n 1 -p "$1 (Y/n): " -r
+    echo
+    [[ $REPLY =~ ^[Yy]?$ ]]
 }
 
 # compare files
 function compare() {
   [ "$(md5sum "$1" | sed "s/ .*//")" = "$(md5sum "$2" | sed "s/ .*//")" ]
+}
+
+# tab completion
+function completion(){
+  local words=( $COMP_LINE )
+  local action=${words[1]}
+  local subact=${words[@]:2}
+
+  [ -z "$action" ] && compgen -W "init help tutorial version $(ls "$RUNCORE/scripts/actions" 2>/dev/null)" -- "$2" && return
+  [ "$action" = "help" ] && compgen -W "init $(ls "$RUNCORE/scripts/actions" 2>/dev/null)" -- "$2" && return
+  [ "$action" = "init" ] &&   
+  [ -f "$RUNCORE/scripts/actions/$action" ] && "$RUNCORE/scripts/actions/$action" $'\t' "${subacts[@]}"
 }
 
 # copy directory
@@ -38,13 +54,13 @@ function copydir() {
 
     mkdir -p "${dest%/*}"
 
-    [ ! -e "$dest" ] || compare "$dest" "$file" || answer "Replace /core/${dir##*/}/${file##*/}?" && cp "$file" "$dest"
+    [ ! -e "$dest" ] || compare "$dest" "$file" || confirm "Replace /core/${dir##*/}/${file##*/}?" && cp "$file" "$dest"
   done
 }
 
 # delegate to extensions
 function delegate() {
-  [ -f "$RUNCORE/actions/$1.sh" ] &&  exec "$RUNCORE/actions/$1.sh" $@
+  [ -f "$RUNCORE/scripts/actions/$1" ] &&  exec "$RUNCORE/scripts/actions/$1" $@
 
   help $@
 }
@@ -53,7 +69,7 @@ function delegate() {
 function extensions() {
   [ ! -d "$RUNCORE/scripts/actions" ] && return
 
-  for extscript in $RUNCORE/scripts/actions/*.sh; do
+  for extscript in $RUNCORE/scripts/actions/*; do
     $extscript $@
   done
 }
@@ -72,7 +88,7 @@ function help() {
       ;;
     *)
       # if we have an extension script run it 
-      [ -f "$RUNCORE/scripts/actions/$2.sh" ] && exec $RUNCORE/scripts/actions/$2.sh $@
+      [ -f "$RUNCORE/scripts/actions/$2" ] && exec $RUNCORE/scripts/actions/$2 $@
 
       # show the defualt help menu
       echo "RUNCORE CLI - $(version)"
@@ -101,7 +117,7 @@ function help() {
 function init() {
   # check if we are not in a git repository
   if [ -z "$GITROOT" ]; then
-    if answer "You are not in a repo. Run git init?"; then
+    if confirm "You are not in a repo. Run git init?"; then
       git init &>/dev/null
       GITROOT="."
       RUNCORE="./.$RUNNAME"
@@ -155,6 +171,7 @@ function version() {
 
 # switch for base version
 case $1 in
+  $'\t') completion;;
   version) version;;
   init) init $2;;
   tutorial) tutorial $@;;

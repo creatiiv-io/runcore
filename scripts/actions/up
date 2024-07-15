@@ -1,5 +1,13 @@
 #!/bin/bash
 
+#bash completion
+function completion() {
+  COMP_WORDS=(docker compose "${COMP_WORDS[@]:2}")
+  COMP_CWORD=$((COMP_CWORD + 1))
+  _docker
+  return
+}
+
 # display help
 function help() {
   case $1 in
