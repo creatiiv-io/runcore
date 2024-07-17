@@ -4,7 +4,7 @@
 function help() {
   case $1 in
     reset)
-      echo "reset database"
+      echo "reset containers"
       ;;
     *)
       echo "  $RUNNAME reset"
@@ -12,8 +12,13 @@ function help() {
   esac
 }
 
+# reset data
+function reset() {
+  confirm "Delete all data and reset all containers?" && containers development down -v
+}
+
 # run something
-case $1 in
-  help) help ${@:2};;
-  reset) reset ${@:2};;
+case "$1" in
+  help) help "${@:2}";;
+  reset) reset "${@:2}";;
 esac

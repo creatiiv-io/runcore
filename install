@@ -51,11 +51,11 @@ fi
 
 # check for dev mode
 dev_mode="$(grep "RUNCORE" "${PWD}/runcore" 2>/dev/null)"
-if [ -z "${dev_mode:+x}" ]; then
+if [ -n "${dev_mode:+x}" ]; then
+  sudo ln -s ${PWD}/runcore "${DIRNAME}/${RUNNAME}"
+else
   sudo wget -qO "${DIRNAME}/${RUNNAME}" "${RUNCORE_URL}"
   sudo chmod +x "${DIRNAME}/${RUNNAME}"
-else
-  sudo ln -s ${PWD}/runcore "${DIRNAME}/${RUNNAME}"
 fi
 
 # Check the exit status

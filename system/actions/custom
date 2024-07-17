@@ -4,7 +4,7 @@
 function help() {
   case $1 in
     custom)
-      echo "custom Docker and Caddy"
+      echo "Customize Docker and Caddy files"
       ;;
     *)
       echo "  $RUNNAME custom"
@@ -12,8 +12,13 @@ function help() {
   esac
 }
 
+function custom() {
+  verifycopy "$RUNCORE/system/development.yaml" "$GITROOT/docker-compose.yaml"
+  verifycopy "$RUNCORE/system/Caddyfile" "$GITROOT/Caddyfile"
+}
+
 # run something
 case $1 in
-  help) help ${@:2};;
-  custom) custom ${@:2};;
+  help) help "${@:2}";;
+  custom) custom;;
 esac

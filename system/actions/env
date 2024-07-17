@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# bash completion
+function completion() {
+  local action="$1"
+  local subact=( "${@:2}" )
+
+ [ "$action" = env ] && compgen -W "$(ls "$GITROOT/core/config/env.")" -- "$subact"
+}
+
 # display help
 function help() {
   case $1 in
@@ -14,6 +22,10 @@ function help() {
 
 # run something
 case $1 in
-  help) help ${@:2};;
-  env) cleanroom env;;
+  $'\t') completion "${@:2}";; 
+  help) help "${@:2}";;
+  env)
+    [ -n "$2" ] && serveconfig "$2"
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | sort
+    ;;
 esac

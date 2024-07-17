@@ -1,18 +1,11 @@
 #!/bin/bash
 
-#bash completion
+# bash completion
 function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  case "$action" in
-    help)
-      echo up-help
-      ;;
-    up) 
-      compgen -W "$(containers development config --services)" -- "$subact"
-      ;;
-  esac
+ [ "$action" = up ] && compgen -W "$(containers development config --services)" -- "$subact"
 }
 
 # display help

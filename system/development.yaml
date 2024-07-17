@@ -110,9 +110,14 @@ services:
         target: /hasura/metadata
         read_only: false
       - type: bind
-        source: ${GITROOT}/core/seed
-        target: /hasura/seed
+        source: ${GITROOT}/core/seeds
+        target: /hasura/seeds
         read_only: false
+      - type: bind
+        source: ${RUNCORE}/system/config.yaml
+        target: /hasura/config.yaml
+        read_only: false
+    working_dir: /hasura
     environment:
       HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET:-appcore-development-environment}"
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
@@ -153,8 +158,20 @@ services:
         condition: service_healthy
     volumes:
       - type: bind
-        source: ./hasura
-        target: /hasura
+        source: ${GITROOT}/core/migrations
+        target: /hasura/migrations
+        read_only: false
+      - type: bind
+        source: ${GITROOT}/core/metadata
+        target: /hasura/metadata
+        read_only: false
+      - type: bind
+        source: ${GITROOT}/core/seeds
+        target: /hasura/seeds
+        read_only: false
+      - type: bind
+        source: ${RUNCORE}/system/config.yaml
+        target: /hasura/config.yaml
         read_only: false
     working_dir: /hasura
     entrypoint: hasura-cli console --no-browser --address 0.0.0.0 --api-port 80 --api-host http://${DOMAIN_NAME:-localhost} --console-port 9695 --endpoint http://hasura:8080 --console-hge-endpoint http://${DOMAIN_NAME:-localhost}
@@ -188,11 +205,11 @@ services:
       - "443:443/udp"
     volumes:
       - type: bind
-        source: ../public
+        source: ${GITROOT}/public
         target: /usr/share/caddy/
         read_only: true
       - type: bind
-        source: ./caddy
+        source: ${RUNCORE}/system
         target: /etc/caddy/
         read_only: true
       - type: volume

@@ -6,17 +6,16 @@ export RUNCORE="$GITROOT/.runcore"
 export INSTALL="http://github.com/creatiiv-io/runcore"
 export DEVELOP=$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)
 export ENVROOT="$(cd "$GITROOT"; basename "$PWD")"
-export ENVNAME="local"
 
 [ -n "${DEVELOP:+x}" ] && export RUNCORE="$GITROOT"
 
 export ACTIONS="$RUNCORE/system/actions"
 
-#environment core
+# cleanroom environment
 function cleanroom() {
   {
     [ -f "$RUNCORE/system/default.env" ] && cat "$RUNCORE/system/default.env" | sed 's/^/export /'
-    [ -f "$GITROOT/core/config/env.$ENVNAME" ] && sed -E 's/\./_/g; s/([^:]+):(.*)/\U\1\E="\2"/' "$GITROOT/core/config/env.$ENVNAME" | sed 's/^/export /'
+    [ -f "$RUNCORE/.config" ] && toenvfromconfig "$RUNCORE/.config" | sed 's/^/export /'
     [ -f "$RUNCORE/system/require.env" ] && cat "$RUNCORE/system/require.env" | sed 's/^/export /'
     echo RUNCORE='"'$RUNCORE'"' | sed 's/^/export /'
     echo GITROOT='"'$GITROOT'"' | sed 's/^/export /'
@@ -26,16 +25,11 @@ function cleanroom() {
   } | env -i bash
 }
 
-# ask a question
+# confirm something
 function confirm() {
-    read -n 1 -p "$1 (Y/n): " -r
-    echo
-    [[ $REPLY =~ ^[Yy]?$ ]]
-}
-
-# compare files
-function compare() {
-  [ "$(md5sum "$1" | sed "s/ .*//")" = "$(md5sum "$2" | sed "s/ .*//")" ]
+  read -n 1 -p "$1 (Y/n): " -r
+  echo
+  [[ $REPLY =~ ^[Yy]?$ ]]
 }
 
 # tab completion
@@ -74,26 +68,17 @@ function completion(){
   [ -f "$ACTIONS/$action" ] && source "$ACTIONS/$action" $'\t' "$action" "${subact[@]}"
 }
 
-# copy directory
-function copydir() {
-  # loop through files
-  for file in $(find "$1" -type f); do
-    local dest="$2/${file#$1}"
-
-    mkdir -p "${dest%/*}"
-
-    [ ! -e "$dest" ] || compare "$dest" "$file" || confirm "Replace /core/${dir##*/}/${file##*/}?" && cp "$file" "$dest"
-  done
-}
-
 # run docker containers
 function containers() {
-  cleanroom docker compose -f "$RUNCORE/system/$1.yaml" "${@:2}"
-}
+  # setup config
+  serveconfig
 
-# exec docker container
-function container() {
-  docker exec -it "$ENVROOT-$1-1" "${@:2}"
+  # are we doing a custom or an internal yaml
+  if [ -f "$GITROOT/docker-compose.yaml" ]; then
+    cleanroom docker compose -f "$GITROOT/docker-compose.yaml" "${@:2}"
+  else
+    cleanroom docker compose -f "$RUNCORE/system/$1.yaml" "${@:2}"
+  fi
 }
 
 # delegate to extensions
@@ -105,6 +90,11 @@ function delegate() {
   fi
 }
 
+# execute inside docker
+function dockerexec() {
+  docker exec -it "$ENVROOT-$1-1" "${@:2}"
+}
+
 # find extension actions
 function extensions() {
   [ ! -d "$ACTIONS" ] && echo "no actions $ACTIONS" && return
@@ -112,6 +102,11 @@ function extensions() {
   for extscript in $ACTIONS/*; do
     $extscript "$@"
   done
+}
+
+# check if files match
+function filematch() {
+  [ "$(md5sum "$1" | sed "s/ .*//")" = "$(md5sum "$2" | sed "s/ .*//")" ]
 }
 
 # display help
@@ -131,9 +126,9 @@ function help() {
       [ -f "$ACTIONS/$2" ] && source $ACTIONS/$2 $@
 
       # show the defualt help menu
-      echo "RUNCORE CLI - $(version)"
-      echo "Hasura on Steroids - Apache-2.0"
-      echo "© 2024 Creatiiv Artists LLC"
+      echo "RUNCORE DEVELOPER CLI - $(version)"
+      echo "AI + Hasura + LiveKit + IPFS + Steroids"
+      echo "©2024 Creatiiv Artists LLC - Apache-2.0"
       echo ""
       echo "Commands:"
       echo ""
@@ -183,8 +178,8 @@ function init() {
   ) &>/dev/null
 
   # copy all core files
-  copydir "$RUNCORE/core/" "$GITROOT/core/"
-  copydir "$RUNCORE/public/" "$GITROOT/public/"
+  verifycopy "$RUNCORE/core/" "$GITROOT/core/"
+  verifycopy "$RUNCORE/public/" "$GITROOT/public/"
 
   local is_old="$(ls "$RUNCORE" 2>/dev/null)"
 
@@ -204,6 +199,58 @@ function tutorial() {
   xdg-open https://runcore.dev/tutorial
 }
 
+# serve configuration
+function saveconfig() {
+  local config="$1"
+
+  # save new setting first
+  [ -n "$3" ] && echo "$2=$3" | toconfigfromenv >> "$config"
+
+  # reorder and generate config
+  {
+    echo "setting:configuration"
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | sort | toconfigfromenv
+  } > "${config##*/}"
+
+  mv "${config##*/}" "$config"
+}
+
+# serve configuration
+function serveconfig() {
+  # get current config
+  local config=$(readlink "$RUNCORE/.config")
+
+  # are we trying to change it
+  [ -n "$1" ] && config="$1"
+
+  # make sure we have a filename
+  config="${config:-local}"
+  config="$GITROOT/core/config/conf.${config##*.}"
+
+  # fill conf file if it doesn't exist
+  [ ! -f "$config" ] && saveconfig "$config"
+
+  # remove old config if we are replacing
+  [ -n "$1" ] && rm -f "$RUNCORE/.config"
+
+  # link the config if needed
+  [ ! -f "$RUNCORE/.config" ] && ln -s "$config" "$RUNCORE/.config"
+}
+
+# convert env to config format
+function toconfigfromenv() {
+  while IFS='=' read -r key value; do
+    echo "$(echo "$key" | tr 'A-Z' 'a-z' | sed -E 's/[^a-z0-9]+/./g'):$value"
+  done < "${1:-/dev/stdin}"
+}
+
+# convert config to env format
+function toenvfromconfig() {
+  while IFS=':' read -r key value; do
+    echo "$(echo "$key" | tr 'a-z' 'A-Z' | sed -E 's/[^A-Z0-9]+/_/g')=$value"
+  done < "${1:-/dev/stdin}"
+}
+
 # display version
 function version() {
   # if not in git return
@@ -214,6 +261,18 @@ function version() {
 
   # show git version
   echo "${git_tag:-vBeta}-$(cd $RUNCORE; git rev-parse --short HEAD)"
+}
+
+# verify each file as you copy
+function verifycopy() {
+  # loop through files
+  for file in $(find "$1" -type f); do
+    local dest="$2/${file#$1}"
+
+    mkdir -p "${dest%/*}"
+
+    [ ! -e "$dest" ] || filematch "$dest" "$file" || confirm "Replace /core/${dir##*/}/${file##*/}?" && cp "$file" "$dest"
+  done
 }
 
 # switch for base version

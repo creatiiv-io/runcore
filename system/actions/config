@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# bash completion
+function completion() {
+  local action="$1"
+  local subact=( "${@:2}" )
+
+  [ "$action" = config ] && compgen -W "$(sed '1d; s/:.*$//' "$RUNCORE/.config")" -- "$subact"
+}
+
+# display help
+function help() {
+  case $1 in
+    config)
+      echo "start a local dev environment"
+      ;;
+    *)
+      echo "  $RUNNAME config"
+      ;;
+  esac
+}
+
+# set config
+function config() {
+  local config=$(readlink "$RUNCORE/.config")
+  local name=${1,,} 
+
+  # make sure the config is a proper file 
+  config="${config:-local}"
+  config="$GITROOT/core/config/conf.${config##*.}"
+
+  # fill config with variable
+  saveconfig "$config" "$@"
+
+  # return with config or name
+  if [ -z "$1" ]; then
+    cat "$RUNCORE/.config"
+  elif [ -z "$2" ]; then
+    grep "^$name" "$RUNCORE/.config"
+  fi
+}
+
+# run something
+case "$1" in
+  $'\t') completion "${@:2}";;
+  help) help "${@:2}";;
+  config) config "${@:2}";;
+esac
