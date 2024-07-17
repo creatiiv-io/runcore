@@ -176,8 +176,8 @@ function init() {
   ) &>/dev/null
 
   # copy all core files
-  verifycopy "$RUNCORE/core/" "$GITROOT/core/"
-  verifycopy "$RUNCORE/public/" "$GITROOT/public/"
+  verifycopydir "$RUNCORE/core/" "$GITROOT/core/"
+  verifycopydir "$RUNCORE/public/" "$GITROOT/public/"
 
   local is_old="$(ls "$RUNCORE" 2>/dev/null)"
 
@@ -270,6 +270,26 @@ function tutorial() {
   xdg-open https://runcore.dev/tutorial
 }
 
+# verify directory as you copy
+function verifycopydir() {
+  # loop through files
+  for file in $(find "$1" -type f); do
+    local dest="$2/${file#$1}"
+
+    mkdir -p "${dest%/*}"
+
+    verifyfile "$file" "$dest"
+  done
+}
+
+# verify file as you copy
+function verifycopyfile() {
+    local file="$1"
+    local dest="$2"
+
+    [ ! -e "$dest" ] || filematch "$dest" "$file" || confirm "Replace /core/${dir##*/}/${file##*/}?" && cp "$file" "$dest"
+}
+
 # display version
 function version() {
   # if not in git return
@@ -280,18 +300,6 @@ function version() {
 
   # show git version
   echo "${git_tag:-vBeta}-$(cd $RUNCORE; git rev-parse --short HEAD)"
-}
-
-# verify each file as you copy
-function verifycopy() {
-  # loop through files
-  for file in $(find "$1" -type f); do
-    local dest="$2/${file#$1}"
-
-    mkdir -p "${dest%/*}"
-
-    [ ! -e "$dest" ] || filematch "$dest" "$file" || confirm "Replace /core/${dir##*/}/${file##*/}?" && cp "$file" "$dest"
-  done
 }
 
 # switch for base version

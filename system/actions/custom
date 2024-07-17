@@ -13,8 +13,12 @@ function help() {
 }
 
 function custom() {
-  verifycopy "$RUNCORE/system/development.yaml" "$GITROOT/docker-compose.yaml"
-  verifycopy "$RUNCORE/system/Caddyfile" "$GITROOT/Caddyfile"
+  # make sure we are not dev
+  [ -n "${DEVCORE:+x}" ] && echo "You cannot instanciate runcore custom in development repo." && return
+
+  # copy files
+  verifycopyfile "$RUNCORE/system/development.yaml" "$GITROOT/docker-compose.yaml"
+  verifycopyfile "$RUNCORE/system/Caddyfile" "$GITROOT/Caddyfile"
 }
 
 # run something
