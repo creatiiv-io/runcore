@@ -23,7 +23,7 @@ get_conflicts() {
 load_datafile() {
   local seedfile="$1"
   local table=$(basename "$seedfile")
-  local temp_table="temp_${table//./_}"
+  local temp_table="temp_data_${table//./_}"
   local headers=$(head -n 1 "$seedfile")
   local columns=${headers//:/, }
   local update_columns=$(echo $columns | sed 's/[^,]*/\0 = EXCLUDED.&/g')

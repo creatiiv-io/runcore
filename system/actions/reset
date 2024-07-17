@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# bash completion
+function completion() {
+  local action="$1"
+  local subact=( "${@:2}" )
+
+  if [ "$action" = reset ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$({
+      runcompose development config --services
+      runcompose production config --services
+    } | uniq)" -- "$subact"
+  fi
+}
+
 # display help
 function help() {
   case $1 in
@@ -14,11 +27,24 @@ function help() {
 
 # reset data
 function reset() {
-  confirm "Delete all data and reset all containers?" && containers development down -v
+  # make sure we want to do this
+  confirm "Do you really want to delete all data for ${1:-containers}? - CANNOT BE UNDONE!!!" || return
+
+  runcompose development down $1 2>/dev/null
+  runcompose production down $1 2>/dev/null
+
+  local volumes="$(docker volume ls -q | cleanroom grep '"'\${CORE_NAME}_$1'"')"
+
+  if [ -z "$volumes" ]; then
+    echo "no data volumes found"
+  else 
+    docker volume rm $volumes | sed -E 's/^[^-]+-[^_]+_//; s/$/ - reset data/'
+  fi
 }
 
 # run something
 case "$1" in
+  $'\t') completion "${@:2}";;
   help) help "${@:2}";;
   reset) reset "${@:2}";;
 esac

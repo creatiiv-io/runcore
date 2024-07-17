@@ -1,28 +1,44 @@
 #!/bin/bash
 
-export RUNNAME="${0##*/}"
-export GITROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-export RUNCORE="$GITROOT/.runcore"
 export INSTALL="http://github.com/creatiiv-io/runcore"
-export DEVELOP=$(grep "RUNCORE" "$GITROOT/runcore" 2>/dev/null)
-export ENVROOT="$(cd "$GITROOT"; basename "$PWD")"
-
-[ -n "${DEVELOP:+x}" ] && export RUNCORE="$GITROOT"
-
+export GITROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+export DEVCORE=$(grep -l "DEVCORE" "${GITROOT}/runcore" 2>/dev/null)
+export RUNNAME="${0##*/}"
+export RUNCORE="${GITROOT}$([ -z "${DEVCORE:+x}" ] && echo "/.runcore")"
+export ENVROOT="$(cd "${GITROOT}"; basename "${PWD}")"
 export ACTIONS="$RUNCORE/system/actions"
 
 # cleanroom environment
 function cleanroom() {
+  # Get config name
+  local config=$(readlink "$RUNCORE/.config")
+  local input
+
+  # Check for piped input
+  [ ! -t 0 ] && input=$(mktemp) && cat - > "$input"
+
   {
+    # set defaults, get config, get overides
     [ -f "$RUNCORE/system/default.env" ] && cat "$RUNCORE/system/default.env" | sed 's/^/export /'
     [ -f "$RUNCORE/.config" ] && toenvfromconfig "$RUNCORE/.config" | sed 's/^/export /'
     [ -f "$RUNCORE/system/require.env" ] && cat "$RUNCORE/system/require.env" | sed 's/^/export /'
-    echo RUNCORE='"'$RUNCORE'"' | sed 's/^/export /'
-    echo GITROOT='"'$GITROOT'"' | sed 's/^/export /'
-    echo ENVROOT='"'$ENVROOT'"' | sed 's/^/export /'
+
+    # add runcore variables
+    echo export CORE_CONFIG='"'${config##*/}'"'
+    echo export CORE_DIR='"'$GITROOT/core'"'
+    echo export CORE_NAME='"'$ENVROOT-${config##*/conf.}'"'
+    echo export CORE_PUBLIC='"'$RUNCORE/public'"'
+    echo export CORE_SYSTEM='"'$RUNCORE/system'"'
+
+    # always run from git root
     echo cd '"'$GITROOT'"'
-    echo $@
+
+    # If input was piped, use it with the command, otherwise just run the command
+    echo "$@ $([ -n "$input" ] && echo " < $input")"
   } | env -i bash
+
+  # Clean up temporary file
+  [ -n "$input" ] && rm -f "$input"
 }
 
 # confirm something
@@ -68,19 +84,6 @@ function completion(){
   [ -f "$ACTIONS/$action" ] && source "$ACTIONS/$action" $'\t' "$action" "${subact[@]}"
 }
 
-# run docker containers
-function containers() {
-  # setup config
-  serveconfig
-
-  # are we doing a custom or an internal yaml
-  if [ -f "$GITROOT/docker-compose.yaml" ]; then
-    cleanroom docker compose -f "$GITROOT/docker-compose.yaml" "${@:2}"
-  else
-    cleanroom docker compose -f "$RUNCORE/system/$1.yaml" "${@:2}"
-  fi
-}
-
 # delegate to extensions
 function delegate() {
   if [ -f "$ACTIONS/$1" ]; then
@@ -88,11 +91,6 @@ function delegate() {
   else
     help "$@"
   fi
-}
-
-# execute inside docker
-function dockerexec() {
-  docker exec -it "$ENVROOT-$1-1" "${@:2}"
 }
 
 # find extension actions
@@ -169,7 +167,7 @@ function init() {
   fi
 
   # if we are in the runcore repo show error
-  [ -n "${DEVELOP:+x}" ] && echo "cannot initialize in runcore source directory" && exit 1
+  [ -n "${DEVCORE:+x}" ] && echo "cannot initialize in runcore source directory" && exit 1
 
   #install runcore submodule
   (
@@ -194,41 +192,57 @@ function init() {
   echo "  git commit -m '$RUNNAME ${is_old:+re}installed'"
 }
 
-# display tutorial
-function tutorial() {
-  xdg-open https://runcore.dev/tutorial
+# docker compose
+function runcompose() {
+  # setup config
+  serveconfig
+
+  # are we doing a custom or an internal yaml
+  if [ -f "$GITROOT/docker-compose.yaml" ]; then
+    cleanroom docker compose -f '"'$GITROOT/docker-compose.yaml'"' "${@:2}"
+  else
+    cleanroom docker compose -f '"'$RUNCORE/system/$1.yaml'"' "${@:2}"
+  fi
+}
+
+# execute inside docker
+function runexec() {
+  docker exec -it "${RUNCORE_NAME}-$1-1" "${@:2}"
 }
 
 # serve configuration
 function saveconfig() {
-  local config="$1"
+  local config="${1:-conf.local}"
+  local tempfile="${RUNCORE}/.temp_${config##*/}"
+
+  # set proper config location
+  config="${GITROOT}/core/config/${config##*/}"
 
   # save new setting first
-  [ -n "$3" ] && echo "$2=$3" | toconfigfromenv >> "$config"
+  [ -n "$3" ] && echo "$2=$3" | toconfigfromenv >> "${config}"
 
-  # reorder and generate config
+  # reorder and generate config in tempfile
   {
     echo "setting:configuration"
-    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | sort | toconfigfromenv
-  } > "${config##*/}"
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_|RUNCORE_)=/d' | sort | toconfigfromenv
+  } > "${tempfile}"
 
-  mv "${config##*/}" "$config"
+  # move tempfile to config
+  mv "${tempfile}" "${config}"
+
+  # return config file
+  echo "$config"
 }
 
 # serve configuration
 function serveconfig() {
-  # get current config
   local config=$(readlink "$RUNCORE/.config")
 
-  # are we trying to change it
-  [ -n "$1" ] && config="$1"
+  # if changin config
+  [ -n "$1" ] && config="conf.${1##*/}"
 
-  # make sure we have a filename
-  config="${config:-local}"
-  config="$GITROOT/core/config/conf.${config##*.}"
-
-  # fill conf file if it doesn't exist
-  [ ! -f "$config" ] && saveconfig "$config"
+  # fill config file if it doesn't exist
+  [ ! -f "$config" ] && config=$(saveconfig "${config##*/}")
 
   # remove old config if we are replacing
   [ -n "$1" ] && rm -f "$RUNCORE/.config"
@@ -249,6 +263,11 @@ function toenvfromconfig() {
   while IFS=':' read -r key value; do
     echo "$(echo "$key" | tr 'a-z' 'A-Z' | sed -E 's/[^A-Z0-9]+/_/g')=$value"
   done < "${1:-/dev/stdin}"
+}
+
+# display tutorial
+function tutorial() {
+  xdg-open https://runcore.dev/tutorial
 }
 
 # display version

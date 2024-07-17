@@ -5,7 +5,9 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  [ "$action" = config ] && compgen -W "$(sed '1d; s/:.*$//' "$RUNCORE/.config")" -- "$subact"
+  if [ "$action" = config ] && [ -z "$subact" ]; then
+    compgen -W "core.environment $(sed '1d; s/:.*$//' "$RUNCORE/.config")" -- "$subact"
+  fi
 }
 
 # display help
@@ -25,18 +27,22 @@ function config() {
   local config=$(readlink "$RUNCORE/.config")
   local name=${1,,} 
 
-  # make sure the config is a proper file 
-  config="${config:-local}"
-  config="$GITROOT/core/config/conf.${config##*.}"
-
   # fill config with variable
-  saveconfig "$config" "$@"
+  config=$(saveconfig "$config" "$@")
 
-  # return with config or name
-  if [ -z "$1" ]; then
-    cat "$RUNCORE/.config"
+  # show docker environent
+  if [ "$1" = "core.environment" ]; then
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | sort
+  # show full config
+  elif [ -z "$1" ]; then
+    echo "setting:configuration"
+    {
+      cleanroom env
+      echo 'CORE_ENVIRONMENT=$(env)'
+    } | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | toconfigfromenv | sort
+  # show single config
   elif [ -z "$2" ]; then
-    grep "^$name" "$RUNCORE/.config"
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | toconfigfromenv | grep "^$name"
   fi
 }
 

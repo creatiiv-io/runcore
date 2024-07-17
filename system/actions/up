@@ -5,7 +5,9 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
- [ "$action" = up ] && compgen -W "$(containers development config --services)" -- "$subact"
+  if [ "$action" = up ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$(runcompose development config --services)" -- "$subact"
+  fi
 }
 
 # display help
@@ -20,9 +22,32 @@ function help() {
   esac
 }
 
+# docker up
+function up() {
+  local success
+
+  runcompose development up -d "$@"
+
+  success=$?
+
+  [ "$success" != 0 ] && echo "Errors encoutered." && return
+
+  [ -n "$1" ] && return
+
+  echo ""
+  echo "  Runcore is up. Next try:"
+  echo ""
+  echo "  $RUNNAME website"
+  echo "  $RUNNAME mobile"
+  echo "  $RUNNAME desktop"
+  echo "  $RUNNAME console"
+  echo "  $RUNNAME sql"
+  echo ""
+}
+
 # run something
 case "$1" in
   $'\t') completion "${@:2}";;
   help) help "${@:2}";;
-  up) containers development up -d "${@:2}";;
+  up) up "${@:2}";;
 esac

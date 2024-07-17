@@ -1,84 +1,177 @@
+name: ${CORE_NAME}
 services:
+  auth:
+    image: nhost/hasura-auth:0.31.0
+    restart: always
+    depends_on:
+      hasura:
+        condition: service_healthy
+    environment:
+      AUTH_ACCESS_CONTROL_ALLOWED_EMAIL_DOMAINS: ""
+      AUTH_ACCESS_CONTROL_ALLOWED_EMAILS: ""
+      AUTH_ACCESS_CONTROL_ALLOWED_REDIRECT_URLS: ""
+      AUTH_ACCESS_CONTROL_BLOCKED_EMAIL_DOMAINS: ""
+      AUTH_ACCESS_CONTROL_BLOCKED_EMAILS: ""
+      AUTH_ACCESS_TOKEN_EXPIRES_IN: "${LOGIN_TOKENEXPIRES}"
+      AUTH_ANONYMOUS_USERS_ENABLED: "false"
+      AUTH_API_PREFIX: "/v1/auth"
+      AUTH_CLIENT_URL: "http://localhost/login"
+      AUTH_DISABLE_NEW_USERS: "${LOGIN_DISABLENEWUSERS}"
+      AUTH_DISABLE_SIGNUP: "${LOGIN_DISABLESIGNUPS}"
+      AUTH_EMAIL_PASSWORDLESS_ENABLED: "${LOGIN_ENABLEPASSWORDLESS}"
+      AUTH_EMAIL_SIGNIN_EMAIL_VERIFIED_REQUIRED: "${LOGIN_ENABLEVERIFYEMAIL}"
+      AUTH_GRAVATAR_DEFAULT: "${LOGIN_GRAVITARDEFAULT}"
+      AUTH_GRAVATAR_ENABLED: "${LOGIN_GRAVITARENABLED}"
+      AUTH_GRAVATAR_RATING: "${LOGIN_GRAVITARRATING}"
+      AUTH_JWT_CUSTOM_CLAIMS: '{}'
+      AUTH_LOCALE_ALLOWED_LOCALES: "en"
+      AUTH_LOCALE_DEFAULT: "${LOGIN_DEFAULTLANGUAGE}"
+      AUTH_MFA_ENABLED: "${LOGIN_ENABLEMULTIFACTOR}"
+      AUTH_MFA_TOTP_ISSUER: ""
+      AUTH_PASSWORD_HIBP_ENABLED: "false"
+      AUTH_PASSWORD_MIN_LENGTH: "${LOGIN_PASSWORDLENGTH}"
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: "2592000"
+      AUTH_REQUIRE_ELEVATED_CLAIM: "disabled"
+      AUTH_SERVER_URL: "http://${DOMAIN_NAME}/v1/auth"
+      AUTH_SMTP_AUTH_METHOD: "${LOGIN_SMTPAUTH}"
+      AUTH_SMTP_HOST: "${LOGIN_SMTPHOST}"
+      AUTH_SMTP_PASS: "${LOGIN_SMTPPASS}"
+      AUTH_SMTP_PORT: "${LOGIN_SMTPPORT}"
+      AUTH_SMTP_SECURE: "false"
+      AUTH_SMTP_SENDER: "${LOGIN_SMTPFROM}"
+      AUTH_SMTP_USER: "${LOGIN_SMTPUSER}"
+      AUTH_USER_DEFAULT_ALLOWED_ROLES: "client,public"
+      AUTH_USER_DEFAULT_ROLE: "client"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${GRAPHQL_ADMINSECRET}"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://${LOGIN_DBUSERNAME}:${LOGIN_DBPASSWORD}@postgres:5432/runcore"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${GRAPHQL_DBUSERNAME}:${GRAPHQL_DBPASSWORD}@postgres:5432/runcore"
+      HASURA_GRAPHQL_GRAPHQL_URL: "http://hasura:8080/v1/graphql"
+      HASURA_GRAPHQL_JWT_SECRET: '{"key":"0f987876650b4a085e64594fae9219e7781b17506bec02489ad061fba8cb22db","type":"HS256"}'
+      POSTGRES_MIGRATIONS_CONNECTION: "postgres://${LOGIN_DBUSERNAME}:${LOGIN_DBPASSWORD}@postgres:5432/runcore"
   postgres:
     image: postgres:16-alpine
     restart: always
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_DB: appcore
-      POSTGRES_USER: appcore
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - type: volume
-        source: postgres_data
-        target: /var/lib/postgresql/data
+      - ${CORE_SYSTEM}/pg_scripts/:/usr/local/sbin/:ro
+      - ${CORE_SYSTEM}/init:/initfiles:ro
+      - ${CORE_DIR}/config:/datafiles:ro
+      - postgres_data:/var/lib/postgresql/data
+    entrypoint: pg_start
+    environment:
+      POSTGRES_DB: runcore
+      POSTGRES_USER: ${ADMIN_DBUSERNAME:-runcore}
+      POSTGRES_PASSWORD: ${ADMIN_DBPASSWORD:-development}
+      RUNCORE_ADMIN_USER: ${ADMIN_DBUSERNAME:-runcore}
+      RUNCORE_ADMIN_PASSWORD: ${ADMIN_DBPASSWORD:-development}
+      RUNCORE_AUTH_USER: ${LOGIN_DBUSERNAME}
+      RUNCORE_AUTH_PASSWORD: ${LOGIN_DBPASSWORD}
+      RUNCORE_HASURA_USER: ${GRAPHQL_DBUSERNAME}
+      RUNCORE_HASURA_PASSWORD: ${GRAPHQL_DBPASSWORD}
+      RUNCORE_PGBOUNCER_USER: ${PGBOUNCER_DBUSER:-pgbouncer}
+      RUNCORE_PGBOUNCER_PASSWORD: ${PGBOUNCER_DBPASSWORD:-pgbouncer}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${ADMIN_USER:-appcore} -d appcore -q
+      timeout: 60s
+      interval: 5s
+      start_period: 60s
+  hasura:
+    image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ${CORE_DIR}/migrations
+        target: /hasura/migrations
         read_only: false
+      - type: bind
+        source: ${CORE_DIR}/metadata
+        target: /hasura/metadata
+        read_only: false
+      - type: bind
+        source: ${CORE_DIR}/seeds
+        target: /hasura/seeds
+        read_only: false
+      - type: bind
+        source: ${CORE_SYSTEM}/config.yaml
+        target: /hasura/config.yaml
+        read_only: false
+    working_dir: "/hasura"
+    environment:
+      HASURA_GRAPHQL_ADMIN_SECRET: "${GRAPHQL_ADMINSECRET}"
+      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_CORS_DOMAIN: "${GRAPHQL_CORSDOMAIN}"
+      HASURA_GRAPHQL_DEV_MODE: "${GRAPHQL_ENABLEDEVMODE}"
+      HASURA_GRAPHQL_DISABLE_CORS: "${GRAPHQL_CORSDISABLED}"
+      HASURA_GRAPHQL_ENABLE_ALLOWLIST: "${GRAPHQL_USEALLOWLIST}"
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_ENABLED_APIS: "${GRAPHQL_ENABLEAPIS}"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: "${GRAPHQL_LOGTYPE}"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://${GRAPHQL_DBUSERNAME}:${GRAPHQL_DBPASSWORD}@postgres:5432/runcore"
+      HASURA_GRAPHQL_DEFAULT_NAMING_CONVENTION: "hasura-default"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${GRAPHQL_DBUSERNAME}:${GRAPHQL_DBPASSWORD}@postgres:5432/runcore"
+      HASURA_GRAPHQL_METADATA_DIR: "/hasura/metadata"
+      HASURA_GRAPHQL_MIGRATION_DIR: "/hasura/migrations"
+      HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE: "${GRAPHQL_EVENTPOOLSIZE}"
+      HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: "${GRAPHQL_LIVEREFRESH}"
+      HASURA_GRAPHQL_LOG_LEVEL: "${GRAPHQL_LOGLEVEL}"
+      HASURA_GRAPHQL_PG_CONNECTIONS: "${GRAPHQL_DBCONNECTIONS}"
+      HASURA_GRAPHQL_PG_TIMEOUT: "${GRAPHQL_DBTIMEOUT}"
+      HASURA_GRAPHQL_SERVER_PORT: "8080"
+      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: "${GRAPHQL_NUMBERSTRING}"
+      HASURA_GRAPHQL_TX_ISOLATION: "${GRAPHQL_TRANSLATIONMODE}"
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: "public"
+      HASURA_GRAPHQL_USE_PREPARED_STATEMENTS: "${GRAPHQL_USEPREPAREDSTATEMENTS}"
+      HASURA_GRAPHQL_WS_READ_COOKIE: "${GRAPHQL_ENABLEWSCOOKIES}"
+    healthcheck:
+      test:
+        - CMD-SHELL
+# curl http://localhost:8080/healthz > /dev/null 2>&1
+        - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
+      timeout: 60s
+      interval: 5s
+      start_period: 60s
   console:
     image: hasura/graphql-engine:v2.40.2-ce.cli-migrations-v3.ubi
     restart: always
     depends_on:
-      graphql:
+      hasura:
         condition: service_healthy
     volumes:
-      - type: bind
-        source: ./hasura
-        target: /hasura
-        read_only: false
+      - ${CORE_DIR}/migrations:/hasura/migrations
+      - ${CORE_DIR}/metadata:/hasura/metadata
+      - ${CORE_DIR}/seeds:/hasura/seeds
+      - ${CORE_SYSTEM}/config.yaml:/hasura/config.yaml
     working_dir: /hasura
-    entrypoint: hasura-cli console --no-browser --address 0.0.0.0 --api-port 80 --api-host http://${DOMAIN_NAME:-localhost} --console-port 9695 --endpoint http://graphql:8080 --console-hge-endpoint http://${DOMAIN_NAME:-localhost}
+    entrypoint: hasura-cli console --no-browser --address 0.0.0.0 --api-port 80 --api-host http://${DOMAIN_NAME:-localhost} --console-port 9695 --endpoint http://hasura:8080 --console-hge-endpoint http://${DOMAIN_NAME:-localhost}
     networks:
       default:
         aliases:
           - ${DOMAIN_NAME:-localhost}
     environment:
-      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${GRAPHQL_ADMINSECRET}"
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
-      HASURA_GRAPHQL_CORS_DOMAIN: '*'
-      HASURA_GRAPHQL_DEV_MODE: "true"
-      HASURA_GRAPHQL_DISABLE_CORS: "false"
+      HASURA_GRAPHQL_CORS_DOMAIN: "${GRAPHQL_CORSDOMAIN}"
+      HASURA_GRAPHQL_DEV_MODE: "${GRAPHQL_ENABLEDEVMODE}"
+      HASURA_GRAPHQL_DISABLE_CORS: "${GRAPHQL_CORSDISABLED}"
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
-      HASURA_GRAPHQL_METADATA_DIR: "/app/metadata"
-      HASURA_GRAPHQL_MIGRATION_DIR: ""
-    healthcheck:
-      test:
-          - CMD-SHELL
-          - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/9695' || exit 1
-      timeout: 60s
-      interval: 5s
-      start_period: 500s
-  graphql:
-    image: hasura/graphql-engine:v2.40.2-ce.ubi
-    restart: always
-    environment:
-      APPCORE_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
-      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
-      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
-      HASURA_GRAPHQL_DEV_MODE: "false"
-      HASURA_GRAPHQL_ENABLE_ALLOWLIST: "true"
-      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
-      HASURA_GRAPHQL_ENABLED_APIS: "metadata,graphql,pgdump,config"
-      HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup,http-log,webhook-log,websocket-log,query-log"
-      HASURA_GRAPHQL_DEFAULT_NAMING_CONVENTION: "hasura-default"
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://appcore:${POSTGRES_PASSWORD}@postgres:5432/appcore"
-      HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE: "100"
-      HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: "1000"
-      HASURA_GRAPHQL_LOG_LEVEL: "warn"
-      HASURA_GRAPHQL_PG_CONNECTIONS: "50"
-      HASURA_GRAPHQL_PG_TIMEOUT: "180"
-      HASURA_GRAPHQL_SERVER_PORT: "8080"
-      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: "false"
-      HASURA_GRAPHQL_TX_ISOLATION: "read-committed"
-      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: "public"
-      HASURA_GRAPHQL_USE_PREPARED_STATEMENTS: "true"
-      HASURA_GRAPHQL_WS_READ_COOKIE: "false"
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${GRAPHQL_DBUSERNAME}:${GRAPHQL_DBPASSWORD}@postgres:5432/runcore"
+      HASURA_GRAPHQL_METADATA_DIR: "/hasura/metadata"
+      HASURA_GRAPHQL_MIGRATION_DIR: "/hasura/migrations"
     healthcheck:
       test:
         - CMD-SHELL
-        - curl http://localhost:8080/healthz > /dev/null 2>&1
+        - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/9695' || exit 1
       timeout: 60s
       interval: 5s
-      start_period: 60s
+      start_period: 500s
   caddy:
     image: caddy:2.8.4-alpine
     restart: unless-stopped
@@ -87,20 +180,12 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
-      - type: bind
-        source: ./caddy
-        target: /etc/caddy/
-        read_only: false
-      - type: volume
-        source: certs_volume
-        target: /data
-        read_only: false
-      - type: volume
-        source: caddy_config
-        target: /config
-        read_only: false
+      - ${CORE_PUBLIC}:/usr/share/caddy/:ro
+      - ${CORE_SYSTEM}:/etc/caddy/:ro
+      - caddy_certs:/data
+      - caddy_config:/config
     working_dir: /etc/caddy
 volumes:
   postgres_data: {}
-  certs_volume: {}
+  caddy_certs: {}
   caddy_config: {}

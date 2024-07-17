@@ -31,5 +31,5 @@ function help() {
 case "$1" in
   $'\t') completion "${@:2}";;
   help) help "${@:2}";;
-  sql) dockerexec postgres bash -c pg_psql "${@:2}";;
+  sql) runexec postgres bash -c pg_psql "${@:2}";;
 esac
