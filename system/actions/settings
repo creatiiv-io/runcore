@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# bash completion
+function completion() {
+  local action="$1"
+  local subact=( "${@:2}" )
+
+  if [ "$action" = settings ] && [ -z "$subact" ]; then
+    compgen -W "core.environment $(sed '1d; s/:.*$//' "$RUNCORE/.settings")" -- "$subact"
+  fi
+}
+
+# display help
+function help() {
+  case $1 in
+    settings)
+      echo "start a local dev environment"
+      ;;
+    *)
+      echo "  $RUNNAME settings"
+      ;;
+  esac
+}
+
+# set settings
+function settings() {
+  local settings=$(readlink "$RUNCORE/.settings")
+  local name=${1,,} 
+
+  # fill settings with variable
+  settings=$(savesettings "${settings:-local}" "$@")
+
+  # show docker environent
+  if [ -z "$1" ]; then
+    echo "setting:configuration"
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | tosettingsfromenv | sort
+  # show single settings
+  elif [ -z "$2" ]; then
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | tosettingsfromenv | grep "^${name//./\.}"
+  fi
+}
+
+# run something
+case "$1" in
+  $'\t') completion "${@:2}";;
+  help) help "${@:2}";;
+  settings) settings "${@:2}";;
+esac

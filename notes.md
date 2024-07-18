@@ -1,51 +1,29 @@
+deploy@appcore.run
+register
 
-Caddyfile
-docker-compose.yaml
-install
-runcore
+core/config/schema.table
+core/settings/name
 
-/core
-  /config
-  /languages
-  /legal
-  /metadata
-  /migrations
-  /public
-  /seeds
-/system
-  /init
-    *.sql
-  /admin
-  /support
-  up-development.yaml
-  up-production.yaml
-/scripts
-  pg-init.sh
-  pg-load.sh
-  runcore-*.sh
+.runcore/.settings
+.runcore/.name-secret
 
-app
-  .env
-  .runcore
-  docker-compose.yaml
-  
-  /config
-    settings -> .env
-  /languages
-  /legal
-  /metadata
-  /migrations
+runcore env
+runcore env [name] [secret]
 
-runcore init
-runcore version
-runcore help
-runcore tutorial
-runcore update [ver]
+runcore settings
+runcore settings category.name something
 
-runcore
-runcore dev
-runcore mobile
-runcore desktop
-runcore down
+runcore config file.name
+runcore config file.name +data:with:link
+pg_dataadd file.name line:with:data
+runcore config file.name -data:with:link
+pg_datadel file.name line:with:data
+runcore config file.name +
+pg_dataload file.name
+runcore config file.name =
+pg_datadump file.name
 
-runcore reset
+
+deploy key is environment specific
+
+

@@ -1,4 +1,4 @@
-name: ${CORE_NAME}
+name: "${CORE_REPONAME}-${CORE_ENVNAME}"
 services:
   auth:
     image: nhost/hasura-auth:0.31.0
@@ -56,7 +56,7 @@ services:
     volumes:
       - ${CORE_SYSTEM}/pg_scripts/:/usr/local/sbin/:ro
       - ${CORE_SYSTEM}/init:/initfiles:ro
-      - ${CORE_DIR}/config:/datafiles:ro
+      - ${CORE_CONFIG}/data:/datafiles:ro
       - postgres_data:/var/lib/postgresql/data
     entrypoint: pg_start
     environment:
@@ -87,16 +87,15 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - type: bind
-        source: ${CORE_DIR}/migrations
-        target: /hasura/migrations
+      - ${CORE_CONFIG}/migrations
+        target:/hasura/migrations
         read_only: false
       - type: bind
-        source: ${CORE_DIR}/metadata
+        source: ${CORE_CONFIG}/metadata
         target: /hasura/metadata
         read_only: false
       - type: bind
-        source: ${CORE_DIR}/seeds
+        source: ${CORE_CONFIG}/seeds
         target: /hasura/seeds
         read_only: false
       - type: bind
@@ -145,9 +144,9 @@ services:
       hasura:
         condition: service_healthy
     volumes:
-      - ${CORE_DIR}/migrations:/hasura/migrations
-      - ${CORE_DIR}/metadata:/hasura/metadata
-      - ${CORE_DIR}/seeds:/hasura/seeds
+      - ${CORE_CONFIG}/migrations:/hasura/migrations
+      - ${CORE_CONFIG}/metadata:/hasura/metadata
+      - ${CORE_CONFIG}/seeds:/hasura/seeds
       - ${CORE_SYSTEM}/config.yaml:/hasura/config.yaml
     working_dir: /hasura
     entrypoint: hasura-cli console --no-browser --address 0.0.0.0 --api-port 80 --api-host http://${DOMAIN_NAME:-localhost} --console-port 9695 --endpoint http://hasura:8080 --console-hge-endpoint http://${DOMAIN_NAME:-localhost}
