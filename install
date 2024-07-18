@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 RUNCORE_URL="https://raw.githubusercontent.com/creatiiv-io/runcore/main/runcore"
 

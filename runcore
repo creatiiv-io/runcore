@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 export INSTALL="http://github.com/creatiiv-io/runcore"
 export GITROOT=$(git rev-parse --show-toplevel 2>/dev/null)
