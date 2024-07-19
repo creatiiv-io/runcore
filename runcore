@@ -24,7 +24,7 @@ function cleanroom() {
     # add runcore variables
     echo export CORE_ROOT='"'${GITROOT}/core'"'
     echo export CORE_ENVNAME='"'$(readlink "$RUNCORE/.settings" | sed -e 's/^.*\///')'"'
-    echo export CORE_REPONAME='"'$(cd "${GITROOT}"; basename "${PWD}")'"'
+    echo export CORE_REPONAME='"'${GITROOT##*/}'"'
     echo export CORE_PUBLIC='"'${RUNCORE}/public'"'
     echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
 
@@ -83,7 +83,7 @@ function completion(){
 }
 
 # delegate to extensions
-function delegate() {
+function extdo() {
   if [ -f "$ACTIONS/$1" ]; then
     source "$ACTIONS/$1" "$@"
   else
@@ -92,7 +92,7 @@ function delegate() {
 }
 
 # find extension actions
-function extensions() {
+function extloop() {
   [ ! -d "$ACTIONS" ] && echo "no actions $ACTIONS" && return
 
   for extscript in $ACTIONS/*; do
@@ -133,7 +133,7 @@ function help() {
       echo ""
  
       # show extension
-      extensions help
+      extloop help
 
       echo ""
       echo "Help:"
@@ -181,7 +181,7 @@ function init() {
 
   echo "$RUNNAME ${is_old:+re}installed - YAY!!!"
 
-  extensions init
+  exloop init
 
   echo ""
   echo "Don't forget to commit changes:"
@@ -307,5 +307,5 @@ case $1 in
   init) init "$2";;
   tutorial) tutorial "$@";;
   help) help "${@:2}";;
-  *) delegate "$@";;
+  *) extdo "$@";;
 esac

@@ -4,7 +4,7 @@ core.envname:local
 core.public:/home/rods/Work/runcore/public
 core.reponame:runcore
 core.system:/home/rods/Work/runcore/system
-domain.name:localhost
+core.domain:localhost
 graphql.adminsecret:appcore-development-environment
 graphql.anonymous.role:public
 graphql.corsdisabled:false
