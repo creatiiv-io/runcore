@@ -22,8 +22,8 @@ function cleanroom() {
     [ -f "${RUNCORE}/system/require.env" ] && cat "${RUNCORE}/system/require.env" | sed 's/^/export /'
 
     # add runcore variables
-    echo export CORE_ROOT='"'${GITROOT}/core'"'
-    echo export CORE_ENVNAME='"'$(readlink "$RUNCORE/.settings" | sed -e 's/^.*\///')'"'
+    echo export CORE_CONFIG='"'${GITROOT}/core'"'
+    echo export CORE_ENVNAME='"'$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')'"'
     echo export CORE_REPONAME='"'${GITROOT##*/}'"'
     echo export CORE_PUBLIC='"'${RUNCORE}/public'"'
     echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
@@ -205,7 +205,7 @@ function runcompose() {
 
 # execute inside docker
 function runexec() {
-  docker exec -it "${RUNCORE_NAME}-$1-1" "${@:2}"
+  docker exec -it "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-$1-1" "${@:2}"
 }
 
 # serve settings

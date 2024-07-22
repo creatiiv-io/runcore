@@ -21,12 +21,14 @@ get_conflicts() {
 
 # Function to process each file
 load_datafile() {
-  local seedfile="$1"
-  local table=$(basename "$seedfile")
-  local temp_table="temp_data_${table//./_}"
-  local headers=$(head -n 1 "$seedfile")
+  local table="$1"
+  local datafile="/datafiles/$1"
+  local headers=$(head -n 1 "$datafile")
   local columns=${headers//:/, }
   local update_columns=$(echo $columns | sed 's/[^,]*/\0 = EXCLUDED.&/g')
+  local temp_table="temp_data_${table//./_}"
+
+  [ ! -f "$datafile" ] && echo 'datafile not found for table "'$table'".' && return
 
   echo 'updating table "'$table'" with new settings'
 
@@ -41,7 +43,7 @@ load_datafile() {
     CREATE TEMP TABLE $temp_table AS SELECT * FROM $table LIMIT 0;
 
     -- Copy data from the CSV file into the temporary table
-    \COPY $temp_table($columns) FROM '$seedfile' DELIMITER ':' CSV HEADER;
+    \COPY $temp_table($columns) FROM '$datafile' DELIMITER ':' CSV HEADER;
 
     -- Insert data. Handle conflicts if any exist
     INSERT INTO $table ($columns)
@@ -59,11 +61,13 @@ load_datafile() {
   echo "$dataload_sql" | PGHOST= PGHOSTADDR= psql -v QUIET=1 ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password --no-psqlrc --dbname "$POSTGRES_DB" -t -A
 }
 
+[ -n "$1" ] && load_datafile $tablename && return
+
 # Process each table in the correct order
 for tablename in $(pg_tableorder); do
   # Check if the file exists in the datafiles
   if [ -f "/datafiles/$tablename" ]; then
     # load data from file
-    load_datafile "/datafiles/$tablename"
+    load_datafile "$tablename"
   fi
 done

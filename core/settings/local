@@ -1,10 +1,12 @@
 setting:configuration
+core.config:/home/rods/Work/runcore/core
 core.dir:/home/rods/Work/runcore/core
+core.domain:localhost
 core.envname:local
 core.public:/home/rods/Work/runcore/public
 core.reponame:runcore
 core.system:/home/rods/Work/runcore/system
-core.domain:localhost
+domain.name:localhost
 graphql.adminsecret:appcore-development-environment
 graphql.anonymous.role:public
 graphql.corsdisabled:false

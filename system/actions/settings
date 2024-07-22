@@ -32,11 +32,10 @@ function settings() {
 
   # show docker environent
   if [ -z "$1" ]; then
-    echo "setting:configuration"
     cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | tosettingsfromenv | sort
   # show single settings
   elif [ -z "$2" ]; then
-    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | tosettingsfromenv | grep "^${name//./\.}"
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | tosettingsfromenv | grep "^${name//./\.}" | sort
   fi
 }
 

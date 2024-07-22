@@ -56,7 +56,7 @@ services:
     volumes:
       - ${CORE_SYSTEM}/pg_scripts/:/usr/local/sbin/:ro
       - ${CORE_SYSTEM}/init:/initfiles:ro
-      - ${CORE_CONFIG}/data:/datafiles:ro
+      - ${CORE_CONFIG}/config:/datafiles:ro
       - postgres_data:/var/lib/postgresql/data
     entrypoint: pg_start
     environment:
@@ -87,21 +87,10 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ${CORE_CONFIG}/migrations
-        target:/hasura/migrations
-        read_only: false
-      - type: bind
-        source: ${CORE_CONFIG}/metadata
-        target: /hasura/metadata
-        read_only: false
-      - type: bind
-        source: ${CORE_CONFIG}/seeds
-        target: /hasura/seeds
-        read_only: false
-      - type: bind
-        source: ${CORE_SYSTEM}/config.yaml
-        target: /hasura/config.yaml
-        read_only: false
+      - ${CORE_CONFIG}/migrations:/hasura/migrations
+      - ${CORE_CONFIG}/metadata:/hasura/metadata
+      - ${CORE_CONFIG}/seeds:/hasura/seeds
+      - ${CORE_SYSTEM}/config.yaml:/hasura/config.yaml:ro
     working_dir: "/hasura"
     environment:
       HASURA_GRAPHQL_ADMIN_SECRET: "${GRAPHQL_ADMINSECRET}"

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# bash completion
+function completion() {
+  local action="$1"
+  local subact=( "${@:2}" )
+
+  if [ "$action" = up ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$(runcompose development config --services)" -- "$subact"
+  fi
+}
+
+# display help
+function help() {
+  case $1 in
+    up)
+      echo "start a local dev environment"
+      ;;
+    *)
+      echo "  $RUNNAME enc"
+      ;;
+  esac
+}
+
+# show environment
+function environment() {
+  cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | sort
+}
+
+# run something
+case "$1" in
+  $'\t') completion "${@:2}";;
+  help) help "${@:2}";;
+  env) environment "${@:2}";;
+esac
