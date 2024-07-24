@@ -31,7 +31,7 @@ EOF
 }
 
 # check for runcore
-if command -v runcore &> /dev/null; then
+if command -v ${RUNNAME} &> /dev/null; then
   if confirm "Runcore is already installed do you want to reinstall?"; then
     sudo rm -f "${DIRNAME}/${RUNNAME}"
   else

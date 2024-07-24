@@ -1,0 +1,10 @@
+table:
+  name: requirements
+  schema: sign
+object_relationships:
+  - name: agreementByAgreement
+    using:
+      foreign_key_constraint_on: agreement
+  - name: featureByFeature
+    using:
+      foreign_key_constraint_on: feature

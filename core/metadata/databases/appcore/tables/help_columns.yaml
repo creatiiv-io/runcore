@@ -1,0 +1,11 @@
+table:
+  name: columns
+  schema: help
+array_relationships:
+  - name: issues
+    using:
+      foreign_key_constraint_on:
+        column: column_id
+        table:
+          name: issues
+          schema: help

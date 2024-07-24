@@ -1,0 +1,35 @@
+table:
+  name: issues
+  schema: help
+object_relationships:
+  - name: board
+    using:
+      foreign_key_constraint_on: board_id
+  - name: column
+    using:
+      foreign_key_constraint_on: column_id
+  - name: user
+    using:
+      foreign_key_constraint_on: created_by
+array_relationships:
+  - name: comments
+    using:
+      foreign_key_constraint_on:
+        column: issue_id
+        table:
+          name: comments
+          schema: help
+  - name: relates
+    using:
+      foreign_key_constraint_on:
+        column: from_issue_id
+        table:
+          name: relates
+          schema: help
+  - name: relatesByToIssueId
+    using:
+      foreign_key_constraint_on:
+        column: to_issue_id
+        table:
+          name: relates
+          schema: help

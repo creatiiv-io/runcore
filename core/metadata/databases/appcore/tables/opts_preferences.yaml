@@ -1,0 +1,10 @@
+table:
+  name: preferences
+  schema: opts
+object_relationships:
+  - name: preferenceByPreference
+    using:
+      foreign_key_constraint_on: preference
+  - name: user
+    using:
+      foreign_key_constraint_on: opts_id

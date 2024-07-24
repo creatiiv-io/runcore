@@ -1,0 +1,14 @@
+table:
+  name: codes
+  schema: sale
+object_relationships:
+  - name: activation
+    using:
+      foreign_key_constraint_on:
+        column: code
+        table:
+          name: activations
+          schema: sale
+  - name: platformByPlatform
+    using:
+      foreign_key_constraint_on: platform

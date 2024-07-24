@@ -1,0 +1,11 @@
+table:
+  name: forms
+  schema: core
+array_relationships:
+  - name: configs
+    using:
+      foreign_key_constraint_on:
+        column: form
+        table:
+          name: configs
+          schema: opts

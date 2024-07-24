@@ -110,13 +110,13 @@ BEGIN;
     locale locale NOT NULL,
 
     email email UNIQUE,
-    phone_number text UNIQUE,
+    phone_number phone UNIQUE,
     password_hash text,
 
     email_verified boolean NOT NULL DEFAULT false,
     phone_number_verified boolean NOT NULL DEFAULT false,
   
-    default_role entity NOT NULL DEFAULT 'client' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    default_role entity NOT NULL DEFAULT 'anyone' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
     is_anonymous boolean NOT NULL DEFAULT false,
     disabled boolean NOT NULL DEFAULT false,
@@ -339,3 +339,169 @@ BEGIN;
   OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
+ALTER DATABASE EXAMPLE SET "auth.jwtsecret" to '${RUNCORE_JWT_SECRET}';
+
+CREATE OR REPLACE FUNCTION auth.encode(data bytea)
+RETURNS text AS $$
+  SELECT translate(encode(data, 'base64'), E'+/=\n', '-_');
+$$ LANGUAGE sql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION auth.decode(data text)
+RETURNS bytea AS $$
+  SELECT decode(
+    translate(data, '-_', '+/') || 
+    repeat('=', (4 - length(translate(data, '-_', '+/')) % 4) % 4), 
+    'base64'
+  );
+$$ LANGUAGE sql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION auth.hmac_sign(
+  input text,
+  secret text,
+  algorithm text
+) RETURNS text AS $$
+  SELECT auth.encode(
+    @extschema@.hmac(
+      input, 
+      secret, 
+      CASE algorithm
+        WHEN 'HS256' THEN 'sha256'
+        WHEN 'HS384' THEN 'sha384'
+        WHEN 'HS512' THEN 'sha512'
+        ELSE NULL  -- thrown for unsupported algorithms
+      END
+    )
+  );
+$$ LANGUAGE sql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION sign_jwt(
+  payload json,
+  secret text,
+  algorithm text DEFAULT 'HS256'
+) RETURNS jwt AS $$
+  SELECT
+    data || '.' || auth.hmac_sign(data, secret, algorithm)
+  FROM (
+    SELECT
+      auth.encode(convert_to('{"alg":"' || algorithm || '","typ":"JWT"}', 'utf8'))
+      || '.' ||
+      auth.encode(convert_to(payload::text, 'utf8')) AS data
+  ) AS token;
+$$ LANGUAGE sql IMMUTABLE;
+
+
+CREATE OR REPLACE FUNCTION auth.verify_jwt(
+  jwt jwt,
+  secret text,
+  algorithm text DEFAULT 'HS256'
+) RETURNS TABLE(header, payload, valid) AS $$
+  SELECT
+    tk.header,
+    tk.payload,
+    tk.valid AND
+    tstzrange(
+      to_timestamp(nullif(regexp_replace(tk.payload->>'nbf', '^.*[^0-9.].*$', '', 'g'), '')::double precision),
+      to_timestamp(nullif(regexp_replace(tk.payload->>'exp', '^.*[^0-9.].*$', '', 'g'), '')::double precision)
+    ) @> CURRENT_TIMESTAMP AS valid
+  FROM (
+    SELECT
+      convert_from(auth.decode(r[1]), 'utf8')::json AS header,
+      convert_from(auth.decode(r[2]), 'utf8')::json AS payload,
+      r[3] = auth.algorithm_sign(r[1] || '.' || r[2], secret, algorithm) AS signature_ok
+    FROM split_to_array(jwt, '.') r
+  ) jwt
+$$ LANGUAGE sql IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION auth.user_jwt(
+  usr auth.users
+) RETURNS jwt AS $$
+  SELECT
+    auth.sign_jwt(
+      json_build_object(
+        'sub', id::text,
+        'iss', 'Hasura-JWT-Auth',
+        'iat', round(extract(EPOCH FROM NOW())),
+        'exp', round(extract(EPOCH FROM NOW() + INTERVAL '24 hour')),
+        'https://hasura.io/jwt/claims', json_build_object(
+          'x-hasura-user-id', au.id,
+          'x-hasura-default-role', au.default_role,
+          'x-hasura-allowed-roles', json_agg(aur.role)
+        )
+      ), current_setting('auth.jwtsecret')) AS jwt_token
+  FROM auth.users au
+  JOIN auth.user_roles aur
+    ON (aur.user_id = au.id)
+  WHERE au.id = usr.id;
+$$ LANGUAGE sql STABLE;
+
+CREATE OR REPLACE FUNCTION auth.setup(
+  email email,
+  password text
+) RETURNS boolean AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.setup(
+  phone text,
+  password text
+) RETURNS boolean AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.login(
+  email email,
+  password text
+) RETURNS jwt AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.login(
+  phone phone,
+  password text
+) RETURNS jwt AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.magic(
+  email email
+) RETURNS boolean AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.magic(
+  phone phone
+) RETURNS boolean AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.token(
+) RETURNS jwt AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.token(
+  token jwt
+) RETURNS text AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.change(
+  user_id uuid,
+  email email
+) RETURNS boolean AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.change(
+  user_id uuid,
+  phone phone
+) RETURNS boolean AS $$
+  SELECT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION auth.change(
+  user_id uuid,
+  pword phone
+) RETURNS boolean AS $$
+  SELECT 1;
+$$ LANGUAGE sql;

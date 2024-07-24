@@ -1,0 +1,13 @@
+table:
+  name: relates
+  schema: help
+object_relationships:
+  - name: issue
+    using:
+      foreign_key_constraint_on: from_issue_id
+  - name: issueByToIssueId
+    using:
+      foreign_key_constraint_on: to_issue_id
+  - name: relationship
+    using:
+      foreign_key_constraint_on: relationship_id

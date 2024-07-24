@@ -1,0 +1,10 @@
+table:
+  name: configs
+  schema: opts
+object_relationships:
+  - name: account
+    using:
+      foreign_key_constraint_on: account_id
+  - name: formByForm
+    using:
+      foreign_key_constraint_on: form

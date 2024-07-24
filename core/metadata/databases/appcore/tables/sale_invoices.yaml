@@ -1,0 +1,10 @@
+table:
+  name: invoices
+  schema: sale
+object_relationships:
+  - name: account
+    using:
+      foreign_key_constraint_on: account_id
+  - name: planByPlan
+    using:
+      foreign_key_constraint_on: plan

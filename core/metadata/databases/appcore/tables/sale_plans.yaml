@@ -1,0 +1,39 @@
+table:
+  name: plans
+  schema: sale
+object_relationships:
+  - name: planByExtendsPlan
+    using:
+      foreign_key_constraint_on: extends_plan
+  - name: platformByPlatform
+    using:
+      foreign_key_constraint_on: platform
+array_relationships:
+  - name: features
+    using:
+      foreign_key_constraint_on:
+        column: plan
+        table:
+          name: features
+          schema: sale
+  - name: invoices
+    using:
+      foreign_key_constraint_on:
+        column: plan
+        table:
+          name: invoices
+          schema: sale
+  - name: plans
+    using:
+      foreign_key_constraint_on:
+        column: extends_plan
+        table:
+          name: plans
+          schema: sale
+  - name: subscriptions
+    using:
+      foreign_key_constraint_on:
+        column: plan
+        table:
+          name: subscriptions
+          schema: sale

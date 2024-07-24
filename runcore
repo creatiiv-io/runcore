@@ -16,20 +16,14 @@ function cleanroom() {
   [ ! -t 0 ] && input=$(mktemp) && cat - > "$input"
 
   {
+    # always run from git root
+    echo cd '"'$GITROOT'"'
+    echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
+
     # set defaults, get settings, get overides
     [ -f "${RUNCORE}/system/default.env" ] && cat "${RUNCORE}/system/default.env" | sed 's/^/export /'
     [ -f "${RUNCORE}/.settings" ] && toenvfromsettings "${RUNCORE}/.settings" | sed 's/^/export /'
-    [ -f "${RUNCORE}/system/require.env" ] && cat "${RUNCORE}/system/require.env" | sed 's/^/export /'
-
-    # add runcore variables
-    echo export CORE_CONFIG='"'${GITROOT}/core'"'
-    echo export CORE_ENVNAME='"'$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')'"'
-    echo export CORE_REPONAME='"'${GITROOT##*/}'"'
-    echo export CORE_PUBLIC='"'${RUNCORE}/public'"'
-    echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
-
-    # always run from git root
-    echo cd '"'$GITROOT'"'
+    [ -f "${RUNCORE}/system/override.env" ] && cat "${RUNCORE}/system/override.env" | sed 's/^/export /'
 
     # If input was piped, use it with the command, otherwise just run the command
     echo "$@ $([ -n "$input" ] && echo " < $input")"
@@ -122,9 +116,9 @@ function help() {
       [ -f "$ACTIONS/$2" ] && source $ACTIONS/$2 $@
 
       # show the defualt help menu
-      echo "RUNCORE DEVELOPER CLI - $(version)"
-      echo "AI + Hasura + LiveKit + IPFS + Steroids"
+      echo "${RUNNAME^^} DEVELOPER CLI - $(version)"
       echo "©2024 Creatiiv Artists LLC - Apache-2.0"
+      echo "AI + Hasura + LiveKit + IPFS + Steroids"
       echo ""
       echo "Commands:"
       echo ""
@@ -195,17 +189,12 @@ function runcompose() {
   # setup settings
   servesettings
 
-  # are we doing a custom or an internal yaml
-  if [ -f "$GITROOT/docker-compose.yaml" ]; then
-    cleanroom docker compose -f '"'$GITROOT/docker-compose.yaml'"' "${@:2}"
-  else
-    cleanroom docker compose -f '"'$RUNCORE/system/$1.yaml'"' "${@:2}"
-  fi
+  cleanroom docker compose -f '"$CORE_DOCKERCOMPOSE"' --profile "$1" "${@:2}"
 }
 
 # execute inside docker
 function runexec() {
-  docker exec -it "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-$1-1" "${@:2}"
+  docker exec -it "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
 }
 
 # serve settings
@@ -222,7 +211,7 @@ function savesettings() {
   # reorder and generate settings in tempfile
   {
     echo "setting:configuration"
-    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_|RUNCORE_)=/d' | sort | tosettingsfromenv
+    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_|CORE_[^=]+)=/d' | sort | tosettingsfromenv
   } > "${tempfile}"
 
   # move tempfile to settings
@@ -291,7 +280,7 @@ function verifycopyfile() {
 # display version
 function version() {
   # if not in git return
-  [ ! -d "$RUNCORE/.git" ] && echo "v1.2-cli" && return
+  [ ! -d "$RUNCORE/.git" ] && echo "v1.3-cli" && return
 
   # git tag
   git_tag=$(cd $RUNCORE; git describe --tags --exact-match 2>/dev/null)

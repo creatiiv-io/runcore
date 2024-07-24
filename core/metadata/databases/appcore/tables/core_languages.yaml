@@ -1,0 +1,25 @@
+table:
+  name: languages
+  schema: core
+array_relationships:
+  - name: accounts
+    using:
+      foreign_key_constraint_on:
+        column: locale
+        table:
+          name: accounts
+          schema: opts
+  - name: revisions
+    using:
+      foreign_key_constraint_on:
+        column: language_code
+        table:
+          name: revisions
+          schema: sign
+  - name: translations
+    using:
+      foreign_key_constraint_on:
+        column: language
+        table:
+          name: translations
+          schema: core

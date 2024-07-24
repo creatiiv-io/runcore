@@ -1,0 +1,18 @@
+table:
+  name: agreements
+  schema: sign
+array_relationships:
+  - name: requirements
+    using:
+      foreign_key_constraint_on:
+        column: agreement
+        table:
+          name: requirements
+          schema: sign
+  - name: revisions
+    using:
+      foreign_key_constraint_on:
+        column: agreement
+        table:
+          name: revisions
+          schema: sign

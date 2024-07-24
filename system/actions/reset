@@ -30,10 +30,10 @@ function reset() {
   # make sure we want to do this
   confirm "Do you really want to delete all data for ${1:-containers}? - CANNOT BE UNDONE!!!" || return
 
-  runcompose development down $1 2>/dev/null
-  runcompose production down $1 2>/dev/null
+  runcompose development down $1
+  runcompose production down $1
 
-  local volumes="$(docker volume ls -q | cleanroom grep '"'\${CORE_NAME}_$1'"')"
+  local volumes="$(docker volume ls -q | cleanroom grep '"'\${CORE_RUNNAME}_$1'"')"
 
   if [ -z "$volumes" ]; then
     echo "no data volumes found"

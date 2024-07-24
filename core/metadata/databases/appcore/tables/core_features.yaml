@@ -1,0 +1,32 @@
+table:
+  name: features
+  schema: core
+array_relationships:
+  - name: features
+    using:
+      foreign_key_constraint_on:
+        column: feature
+        table:
+          name: features
+          schema: sale
+  - name: preferences
+    using:
+      foreign_key_constraint_on:
+        column: feature
+        table:
+          name: preferences
+          schema: core
+  - name: requirements
+    using:
+      foreign_key_constraint_on:
+        column: feature
+        table:
+          name: requirements
+          schema: sign
+  - name: settings
+    using:
+      foreign_key_constraint_on:
+        column: feature
+        table:
+          name: settings
+          schema: core

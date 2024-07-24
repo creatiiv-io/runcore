@@ -1,0 +1,18 @@
+table:
+  name: platforms
+  schema: sale
+array_relationships:
+  - name: codes
+    using:
+      foreign_key_constraint_on:
+        column: platform
+        table:
+          name: codes
+          schema: sale
+  - name: plans
+    using:
+      foreign_key_constraint_on:
+        column: platform
+        table:
+          name: plans
+          schema: sale

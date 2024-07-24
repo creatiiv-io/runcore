@@ -1,0 +1,10 @@
+table:
+  name: signatures
+  schema: sign
+object_relationships:
+  - name: revision
+    using:
+      foreign_key_constraint_on: revision_id
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id

@@ -1,0 +1,7 @@
+table:
+  name: translations
+  schema: core
+object_relationships:
+  - name: languageByLanguage
+    using:
+      foreign_key_constraint_on: language

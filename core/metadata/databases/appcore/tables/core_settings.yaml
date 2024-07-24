@@ -1,0 +1,15 @@
+table:
+  name: settings
+  schema: core
+object_relationships:
+  - name: featureByFeature
+    using:
+      foreign_key_constraint_on: feature
+array_relationships:
+  - name: settings
+    using:
+      foreign_key_constraint_on:
+        column: setting
+        table:
+          name: settings
+          schema: opts

@@ -55,4 +55,9 @@
 	route /apis/migrate* {
 		reverse_proxy console:80
 	}
+
+	route /files* {
+		rewrite /files/* /ipfs/*
+		reverse_proxy ipfs:8080
+	}
 }

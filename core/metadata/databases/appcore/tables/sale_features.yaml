@@ -1,0 +1,10 @@
+table:
+  name: features
+  schema: sale
+object_relationships:
+  - name: featureByFeature
+    using:
+      foreign_key_constraint_on: feature
+  - name: planByPlan
+    using:
+      foreign_key_constraint_on: plan

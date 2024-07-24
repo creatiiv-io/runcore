@@ -1,0 +1,16 @@
+table:
+  name: invitations
+  schema: opts
+object_relationships:
+  - name: account
+    using:
+      foreign_key_constraint_on: account_id
+  - name: role
+    using:
+      foreign_key_constraint_on: role_name
+  - name: user
+    using:
+      foreign_key_constraint_on: invited_by
+  - name: userByOptsId
+    using:
+      foreign_key_constraint_on: opts_id

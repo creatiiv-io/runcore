@@ -1,7 +1,11 @@
 role
 admin
+coder
 owner
 agent
 clerk
-client
+system
+paying
+unpaid
+anyone
 public

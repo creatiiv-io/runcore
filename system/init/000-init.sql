@@ -53,6 +53,28 @@ EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "email" already exists, skipping';
 END $$;
 
+-- domain phone
+DO $$
+BEGIN
+  CREATE DOMAIN phone AS public.citext
+    CONSTRAINT phone_check CHECK (
+      VALUE ~* '^\+[1-9][0-9]{0,2}\.[0-9]{4,14}(?:x[0-9]+)?$'
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "phone" already exists, skipping';
+END $$;
+
+-- domain jwt
+DO $$
+BEGIN
+  CREATE DOMAIN jwt AS text
+    CONSTRAINT jwt_check CHECK (
+      VALUE ~* '^[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]$'
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "jwt" already exists, skipping';
+END $$;
+
 -- domain entity
 DO $$
 BEGIN
