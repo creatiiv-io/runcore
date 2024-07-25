@@ -16,7 +16,7 @@
 	}
 
 	route /console* {
-		reverse_proxy console:9695
+		reverse_proxy hasura:9695
 	}
 
 	route /console/assets/* {
@@ -53,7 +53,7 @@
 	}
 
 	route /apis/migrate* {
-		reverse_proxy console:80
+		reverse_proxy hasura:9695
 	}
 
 	route /files* {

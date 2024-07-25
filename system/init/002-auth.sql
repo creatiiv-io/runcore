@@ -339,7 +339,48 @@ BEGIN;
   OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
-ALTER DATABASE EXAMPLE SET "auth.jwtsecret" to '${RUNCORE_JWT_SECRET}';
+-- table auth.settings
+BEGIN;
+  CALL watch_create_table('auth.settings');
+
+  CREATE TABLE auth.settings (
+    setting entity_scoped PRIMARY KEY,
+    datatype datatype GENERATED ALWAYS AS (
+      jsonb_typeof(value)
+    ) STORED,
+    value jsonvalue NOT NULL
+  );
+
+  CALL after_create_table('auth.settings');
+COMMIT;
+
+-- setting auth.variables
+INSERT INTO auth.settings(setting,value)
+VALUES
+('auth.annonymous','${RUNCORE_AUTH_ANNONYMOUS}'),
+('auth.defaultlanguage','${RUNCORE_AUTH_LANGUAGE}'),
+('auth.defaultroles','${RUNCORE_AUTH_ROLES}'),
+('auth.emailpassword','${RUNCORE_AUTH_EMAILPASSWORD}'),
+('auth.mfaenabled','${RUNCORE_AUTH_MFAENABLED}'),
+('auth.mfamethods','${RUNCORE_AUTH_MFAMETHODS}'),
+('auth.passwordlength','${RUNCORE_AUTH_PASSWORDLENGTH}'),
+('auth.passwordexpires','${RUNCORE_AUTH_PASSWORDEXPIRES}'),
+('auth.jwtsecret','${RUNCORE_AUTH_JWTSECRET}'),
+('auth.sendmagiclink','${RUNCORE_AUTH_MAGICLINK}'),
+('auth.tokenexpires','${RUNCORE_AUTH_TOKENEXPIRES}'),
+('auth.usemultifactor','$(RUNCORE_AUTH_MULTIFACTOR}'),
+('auth.viralrequired','$(RUNCORE_AUTH_VIRALREQUIRED}'),
+('auth.viralshares','$(RUNCORE_AUTH_VIRALSHARES}'),
+('auth.verifycall','$(RUNCORE_AUTH_VERIFY}'),
+('auth.verifyemail','$(RUNCORE_AUTH_VERIFY}'),
+('auth.verifytext','$(RUNCORE_AUTH_VERIFY}');
+
+-- function auth.setting
+CREATE OR REPLACE FUNCTION auth.setting(name entity_scoped)
+RETURNS text AS $$
+  SELECT value #>> '{}' FROM auth.settings WHERE setting = name;
+$$ LANGUAGE sql IMMUTABLE;
+
 
 CREATE OR REPLACE FUNCTION auth.encode(data bytea)
 RETURNS text AS $$
@@ -389,7 +430,6 @@ CREATE OR REPLACE FUNCTION sign_jwt(
   ) AS token;
 $$ LANGUAGE sql IMMUTABLE;
 
-
 CREATE OR REPLACE FUNCTION auth.verify_jwt(
   jwt jwt,
   secret text,
@@ -427,7 +467,9 @@ CREATE OR REPLACE FUNCTION auth.user_jwt(
           'x-hasura-default-role', au.default_role,
           'x-hasura-allowed-roles', json_agg(aur.role)
         )
-      ), current_setting('auth.jwtsecret')) AS jwt_token
+      ),
+      auth.setting('auth.jwtsecret')
+    ) AS jwt
   FROM auth.users au
   JOIN auth.user_roles aur
     ON (aur.user_id = au.id)
@@ -436,28 +478,28 @@ $$ LANGUAGE sql STABLE;
 
 CREATE OR REPLACE FUNCTION auth.setup(
   email email,
-  password text
+  password password
 ) RETURNS boolean AS $$
   SELECT 1;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.setup(
-  phone text,
-  password text
+  phone phone,
+  password password
 ) RETURNS boolean AS $$
   SELECT 1;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.login(
   email email,
-  password text
+  password password
 ) RETURNS jwt AS $$
   SELECT 1;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.login(
   phone phone,
-  password text
+  password password
 ) RETURNS jwt AS $$
   SELECT 1;
 $$ LANGUAGE sql;
@@ -481,7 +523,7 @@ $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.token(
   token jwt
-) RETURNS text AS $$
+) RETURNS jwt AS $$
   SELECT 1;
 $$ LANGUAGE sql;
 
@@ -501,7 +543,7 @@ $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.change(
   user_id uuid,
-  pword phone
+  password password
 ) RETURNS boolean AS $$
   SELECT 1;
 $$ LANGUAGE sql;

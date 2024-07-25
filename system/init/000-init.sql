@@ -64,6 +64,17 @@ EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "phone" already exists, skipping';
 END $$;
 
+-- domain password
+DO $$
+BEGIN
+  CREATE DOMAIN password AS public.citext
+    CONSTRAINT password_check CHECK (
+      VALUE ~ '(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^0-9a-zA-Z]).{9,}'
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "phone" already exists, skipping';
+END $$;
+
 -- domain jwt
 DO $$
 BEGIN

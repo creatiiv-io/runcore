@@ -7,6 +7,8 @@ export RUNNAME="${0##*/}"
 export RUNCORE="${GITROOT}$([ -z "${DEVCORE:+x}" ] && echo "/.runcore")"
 export ACTIONS="$RUNCORE/system/actions"
 
+
+
 # cleanroom environment
 function cleanroom() {
   # Get settings name
@@ -19,6 +21,7 @@ function cleanroom() {
     # always run from git root
     echo cd '"'$GITROOT'"'
     echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
+    echo export CORE_DEVMODE='"'$([ -n "${DEVCORE:+x}" ] && DEVCORE="true" || DEVCORE="false")'"'
 
     # set defaults, get settings, get overides
     [ -f "${RUNCORE}/system/default.env" ] && cat "${RUNCORE}/system/default.env" | sed 's/^/export /'
