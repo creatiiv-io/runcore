@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
+# RUNCORE DEVELOPER CLI 
+
 export INSTALL="http://github.com/creatiiv-io/runcore"
 export GITROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 export DEVCORE=$(grep -l "DEVCORE" "${GITROOT}/runcore" 2>/dev/null)
 export RUNNAME="${0##*/}"
-export RUNCORE="${GITROOT}$([ -z "${DEVCORE:+x}" ] && echo "/.runcore")"
+export RUNCORE="${GITROOT}$([ -z "${DEVCORE:+x}" ] && echo "/.${RUNNAME,,}")"
 export ACTIONS="$RUNCORE/system/actions"
-
-
+export SETTING="$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')"
 
 # cleanroom environment
 function cleanroom() {
-  # Get settings name
   local input
 
   # Check for piped input
@@ -24,9 +24,13 @@ function cleanroom() {
     echo export CORE_DEVMODE='"'$([ -n "${DEVCORE:+x}" ] && DEVCORE="true" || DEVCORE="false")'"'
 
     # set defaults, get settings, get overides
-    [ -f "${RUNCORE}/system/default.env" ] && cat "${RUNCORE}/system/default.env" | sed 's/^/export /'
-    [ -f "${RUNCORE}/.settings" ] && toenvfromsettings "${RUNCORE}/.settings" | sed 's/^/export /'
-    [ -f "${RUNCORE}/system/override.env" ] && cat "${RUNCORE}/system/override.env" | sed 's/^/export /'
+    toenvexport "${RUNCORE}/system/default.env"
+    toenvexport "${RUNCORE}/system/default.settings"
+    toenvexport "${GITROOT}/core/settings/default"
+    toenvexport "${SETTING}"
+    toenvexport "${GITROOT}/core/settings/override"
+    toenvexport "${RUNCORE}/system/override.settings"
+    toenvexport "${RUNCORE}/system/override.env"
 
     # If input was piped, use it with the command, otherwise just run the command
     echo "$@ $([ -n "$input" ] && echo " < $input")"
@@ -120,7 +124,7 @@ function help() {
 
       # show the defualt help menu
       echo "${RUNNAME^^} DEVELOPER CLI - $(version)"
-      echo "©2024 Creatiiv Artists LLC - Apache-2.0"
+      echo "©$(date -r "$0" "+%Y") Creatiiv Artists LLC - Apache-2.0"
       echo "AI + Hasura + LiveKit + IPFS + Steroids"
       echo ""
       echo "Commands:"
@@ -154,7 +158,7 @@ function init() {
     if confirm "You are not in a repo. Run git init?"; then
       git init &>/dev/null
       GITROOT="."
-      RUNCORE="./.runcore"
+      RUNCORE="./.${RUNNAME,,}"
     else
       echo "Initialization aborted."
       exit 1
@@ -167,7 +171,7 @@ function init() {
   #install runcore submodule
   (
     cd "$GITROOT"
-    git submodule add "$INSTALL" ".runcore"
+    git submodule add "$INSTALL" ".${RUNNAME,,}"
   ) &>/dev/null
 
   # copy all core files
@@ -189,10 +193,13 @@ function init() {
 
 # docker compose
 function runcompose() {
-  # setup settings
   servesettings
-
-  cleanroom docker compose -f '"$CORE_DOCKERCOMPOSE"' --profile "$1" "${@:2}"
+  cleanroom docker compose \
+    -f '"${CORE_COMPOSE}"' \
+    '$([ -z "${CORE_CUSTOM}" ] && echo -f "${CORE_SYSTEM}/'${1}'.yaml")' \
+    '$([ -z "${CORE_CUSTOM}" ] && echo -f "${CORE_SYSTEM}/'${1}'.yaml")' \
+    --profile "${1}" \
+    "${@:2}"
 }
 
 # execute inside docker
@@ -202,7 +209,7 @@ function runexec() {
 
 # serve settings
 function savesettings() {
-  local settings="${1:-local}"
+  local settings="${1:-default}"
   local tempfile="${RUNCORE}/.temp_${settings##*/}"
 
   # set proper settings location
@@ -212,10 +219,23 @@ function savesettings() {
   [ -n "$3" ] && echo "$2=$3" | tosettingsfromenv >> "${settings}"
 
   # reorder and generate settings in tempfile
+  echo "setting:configuration" > "${tempfile}"
   {
-    echo "setting:configuration"
-    cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_|CORE_[^=]+)=/d' | sort | tosettingsfromenv
-  } > "${tempfile}"
+    # save everything if it's not an override
+    if [ "${settings}" != "override" ]; then
+      toenvexport "${RUNCORE}/system/default.env"
+      toenvexport "${RUNCORE}/system/default.settings"
+      toenvexport "${GITROOT}/core/settings/default"
+      toenvexport "${SETTING}"
+    fi
+
+    # but always process overrides regardless
+    toenvexport "${GITROOT}/core/settings/override"
+    toenvexport "${RUNCORE}/system/override.settings"
+    toenvexport "${RUNCORE}/system/override.env"
+
+    echo env
+  } | env -i bash | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_|CORE_[^=]+)=/d' | sort | tosettingsfromenv >> "${tempfile}"
 
   # move tempfile to settings
   mv "${tempfile}" "${settings}"
@@ -226,7 +246,7 @@ function savesettings() {
 
 # serve configuration
 function servesettings() {
-  local settings=$(readlink "$RUNCORE/.settings")
+  local settings=${SETTING}
 
   # if changin settings
   [ -n "$1" ] && settings="${1##*/}"
@@ -241,17 +261,26 @@ function servesettings() {
   [ ! -f "$RUNCORE/.settings" ] && ln -s "$settings" "$RUNCORE/.settings"
 }
 
-# convert env to settings format
-function tosettingsfromenv() {
-  while IFS='=' read -r key value; do
-    echo "$(echo "$key" | tr 'A-Z' 'a-z' | sed -E 's/[^a-z0-9]+/./g'):$value"
-  done < "${1:-/dev/stdin}"
+# convert settings export
+function toenvexport() {
+  if [[ "${1}" == *.env ]]; then
+    [ -f "${1}" ] && cat "${1}" | sed 's/^/export /'
+  else
+    [ -f "${1}" ] && toenvfromsettings "${1}" | sed 's/^/export /'
+  fi
 }
 
 # convert settings to env format
 function toenvfromsettings() {
   while IFS=':' read -r key value; do
     echo "$(echo "$key" | tr 'a-z' 'A-Z' | sed -E 's/[^A-Z0-9]+/_/g')=$value"
+  done < "${1:-/dev/stdin}"
+}
+
+# convert env to settings format
+function tosettingsfromenv() {
+  while IFS='=' read -r key value; do
+    echo "$(echo "$key" | tr 'A-Z' 'a-z' | sed -E 's/[^a-z0-9]+/./g'):$value"
   done < "${1:-/dev/stdin}"
 }
 

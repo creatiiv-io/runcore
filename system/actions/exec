@@ -5,14 +5,9 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  case "$action" in
-    help)
-      echo up-help
-      ;;
-    exec) 
-      compgen -W "$(runcompose development config --services)" -- "$subact"
-      ;;
-  esac
+  if [ "$action" = exec ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$(runcompose development config --services)" -- "$subact"
+  fi
 }
 
 # display help

@@ -5,8 +5,8 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  if [ "$action" = up ] && [ "${#subact[@]}" = 1 ]; then
-    compgen -W "$(runcompose development config --services)" -- "$subact"
+  if [ "$action" = env ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$(ls "${GITROOT}/core/settings}")" -- "$subact"
   fi
 }
 
@@ -24,7 +24,9 @@ function help() {
 
 # show environment
 function environment() {
-  cleanroom env | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_)=/d' | sort
+  servesettings "${1}"
+
+  echo "${RUNNAME^} Environment: $(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')"
 }
 
 # run something

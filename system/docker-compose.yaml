@@ -1,65 +1,11 @@
 name: "${CORE_RUNNAME}"
 services:
-#  auth:
-#    image: nhost/hasura-auth:0.31.0
-#    profiles:
-#      - experimental
-#    restart: always
-#    depends_on:
-#      hasura:
-#        condition: service_healthy
-#    environment:
-#      AUTH_ACCESS_CONTROL_ALLOWED_EMAIL_DOMAINS: ""
-#      AUTH_ACCESS_CONTROL_ALLOWED_EMAILS: ""
-#      AUTH_ACCESS_CONTROL_ALLOWED_REDIRECT_URLS: ""
-#      AUTH_ACCESS_CONTROL_BLOCKED_EMAIL_DOMAINS: ""
-#      AUTH_ACCESS_CONTROL_BLOCKED_EMAILS: ""
-#      AUTH_ACCESS_TOKEN_EXPIRES_IN: "${JWTAUTH_TOKENEXPIRES}"
-#      AUTH_ANONYMOUS_USERS_ENABLED: "false"
-#      AUTH_API_PREFIX: "/v1/auth"
-#      AUTH_CLIENT_URL: "http://localhost/login"
-#      AUTH_DISABLE_NEW_USERS: "${JWTAUTH_DISABLENEWUSERS}"
-#      AUTH_DISABLE_SIGNUP: "${JWTAUTH_DISABLESIGNUPS}"
-#      AUTH_EMAIL_PASSWORDLESS_ENABLED: "${JWTAUTH_ENABLEPASSWORDLESS}"
-#      AUTH_EMAIL_SIGNIN_EMAIL_VERIFIED_REQUIRED: "${JWTAUTH_ENABLEVERIFYEMAIL}"
-#      AUTH_GRAVATAR_DEFAULT: "${JWTAUTH_GRAVITARDEFAULT}"
-#      AUTH_GRAVATAR_ENABLED: "${JWTAUTH_GRAVITARENABLED}"
-#      AUTH_GRAVATAR_RATING: "${JWTAUTH_GRAVITARRATING}"
-#      AUTH_JWT_CUSTOM_CLAIMS: '{}'
-#      AUTH_LOCALE_ALLOWED_LOCALES: "en"
-#      AUTH_LOCALE_DEFAULT: "${JWTAUTH_DEFAULTLANGUAGE}"
-#      AUTH_MFA_ENABLED: "${JWTAUTH_ENABLEMULTIFACTOR}"
-#      AUTH_MFA_TOTP_ISSUER: ""
-#      AUTH_PASSWORD_HIBP_ENABLED: "false"
-#      AUTH_PASSWORD_MIN_LENGTH: "${JWTAUTH_PASSWORDLENGTH}"
-#      AUTH_REFRESH_TOKEN_EXPIRES_IN: "2592000"
-#      AUTH_REQUIRE_ELEVATED_CLAIM: "disabled"
-#      AUTH_SERVER_URL: "http://${CADDY_DOMAIN}/v1/auth"
-#      AUTH_SMTP_AUTH_METHOD: "${JWTAUTH_SMTPAUTH}"
-#      AUTH_SMTP_HOST: "${JWTAUTH_SMTPHOST}"
-#      AUTH_SMTP_PASS: "${JWTAUTH_SMTPPASS}"
-#      AUTH_SMTP_PORT: "${JWTAUTH_SMTPPORT}"
-#      AUTH_SMTP_SECURE: "false"
-#      AUTH_SMTP_SENDER: "${JWTAUTH_SMTPFROM}"
-#      AUTH_SMTP_USER: "${JWTAUTH_SMTPUSER}"
-#      AUTH_USER_DEFAULT_ALLOWED_ROLES: "client,public"
-#      AUTH_USER_DEFAULT_ROLE: "client"
-#      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_ADMINSECRET}"
-#      HASURA_GRAPHQL_DATABASE_URL: "postgres://${JWTAUTH_DBUSERNAME}:${JWTAUTH_DBPASSWORD}@postgres:5432/runcore"
-#      HASURA_GRAPHQL_METADATA_DATABASE_URL: "postgres://${HASURA_DBUSERNAME}:${HASURA_DBPASSWORD}@postgres:5432/runcore"
-#      HASURA_GRAPHQL_GRAPHQL_URL: "http://hasura:8080/v1/graphql"
-#      HASURA_GRAPHQL_JWT_SECRET: '{"key":"${HASURA_JWTSECRET}","type":"HS256"}'
-#      POSTGRES_MIGRATIONS_CONNECTION: "postgres://${JWTAUTH_DBUSERNAME}:${JWTAUTH_DBPASSWORD}@postgres:5432/runcore"
   caddy:
     image: caddy:2.8.4-alpine
     profiles:
       - development
       - production
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
     volumes:
       - ${CORE_PUBLIC}:/usr/share/caddy/:ro
       - ${CORE_SYSTEM}:/etc/caddy/:ro
@@ -72,8 +18,6 @@ services:
       - development
       - production
     restart: always
-    ports:
-      - "5432:5432"
     volumes:
       - ${CORE_SYSTEM}/pg_scripts/:/usr/local/sbin/:ro
       - ${CORE_SYSTEM}/init:/initfiles:ro
@@ -92,7 +36,7 @@ services:
       RUNCORE_AUTH_DBPASSWORD: ${JWTAUTH_DBPASSWORD}
       RUNCORE_AUTH_DBUSERNAME: ${JWTAUTH_DBUSERNAME}
       RUNCORE_AUTH_DEFAULTLANGUAGE: ${JWTAUTH_DEFAULTLANGUAGE}
-      RUNCORE_AUTH_DEFAULTROLES: ${JWTAUTH_DEFAULTROLES}
+      RUNCORE_AUTH_DEFAULTROLE: ${JWTAUTH_DEFAULTROLE}
       RUNCORE_AUTH_EMAILPASSWORD: ${JWTAUTH_EMAILPASSWORD}
       RUNCORE_AUTH_JWTSECRET: ${HASURA_JWTSECRET}
       RUNCORE_AUTH_PASSWORDLENGTH: ${JWTAUTH_PASSWORDLENGTH}
@@ -137,6 +81,7 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_ADMINSECRET}"
       HASURA_GRAPHQL_CONNECTION_COMPRESSION: "true"
       HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_CONSOLE_TYPE: "oss"
       HASURA_GRAPHQL_CORS_DOMAIN: "${HASURA_CORSDOMAIN}"
       HASURA_GRAPHQL_DEV_MODE: "${HASURA_ENABLEDEVMODE}"
       HASURA_GRAPHQL_DISABLE_CORS: "${HASURA_CORSDISABLED}"
@@ -180,7 +125,42 @@ services:
       default:
         aliases:
           - ${CADDY_DOMAIN}
+  redis:
+    image: redis:7.2.5-alpine3.20
+    profiles:
+      - development
+      - production
+    volumes:
+      - ${CORE_SYSTEM}:/usr/local/etc/redis/:ro
+      - redis_data:/data/
+  ipfs:
+    image: ipfs/kubo:v0.29.0
+    profiles:
+      - development
+      - production
+    volumes:
+      - ipfs_data:/data/ipfs
+  cluster:
+    image: ipfs/ipfs-cluster:v1.1.1
+    depends_on:
+      - ipfs
+    volumes:
+      - cluster_data:/data/ipfs-cluster
+    environment:
+      CLUSTER_PEERNAME: runcore-${CORE_NODEID}
+      CLUSTER_SECRET: ${IPFS_CLUSTERSECRET} # From shell variable if set
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*' # Trust all peers in Cluster
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s # Speed up peer discovery
+  livekit:
+    image: livekit/livekit-server:v1.7.0
+    command: --dev --redis-host redis:6379
+    network_mode: host
 volumes:
   postgres_data: {}
+  cluster_data: {}
+  redis_data: {}
+  ipfs_data: {}
   caddy_certs: {}
   caddy_config: {}

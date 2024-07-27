@@ -28,7 +28,7 @@ function settings() {
   local name=${1,,} 
 
   # fill settings with variable
-  settings=$(savesettings "${settings:-local}" "$@")
+  settings=$(savesettings "${settings:-default}" "$@")
 
   # show docker environent
   if [ -z "$1" ]; then

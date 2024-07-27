@@ -16,9 +16,13 @@ function custom() {
   # make sure we are not dev
   [ -n "${DEVCORE:+x}" ] && echo "You cannot instanciate runcore custom in development repo." && return
 
+  runcompose config --services | sed -E '1i services:; s/^(.*)$/  \1:/' > "${RUNCORE}/.docker"
+
   # copy files
-  verifycopyfile "$RUNCORE/system/development.yaml" "$GITROOT/docker-compose.yaml"
+  verifycopyfile "$RUNCORE/.docker" "$GITROOT/docker-compose.yaml"
   verifycopyfile "$RUNCORE/system/Caddyfile" "$GITROOT/Caddyfile"
+
+  rm -f "${RUNCORE}/.docker"
 }
 
 # run something

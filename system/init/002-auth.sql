@@ -116,7 +116,7 @@ BEGIN;
     email_verified boolean NOT NULL DEFAULT false,
     phone_number_verified boolean NOT NULL DEFAULT false,
   
-    default_role entity NOT NULL DEFAULT 'anyone' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    default_role entity NOT NULL DEFAULT '${RUNCORE_AUTH_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
     is_anonymous boolean NOT NULL DEFAULT false,
     disabled boolean NOT NULL DEFAULT false,
@@ -358,8 +358,8 @@ COMMIT;
 INSERT INTO auth.settings(setting,value)
 VALUES
 ('auth.annonymous','${RUNCORE_AUTH_ANNONYMOUS}'),
-('auth.defaultlanguage','${RUNCORE_AUTH_LANGUAGE}'),
-('auth.defaultroles','${RUNCORE_AUTH_ROLES}'),
+('auth.defaultlanguage','${RUNCORE_AUTH_DEFAULTLANGUAGE}'),
+('auth.defaultrole','${RUNCORE_AUTH_ROLE}'),
 ('auth.emailpassword','${RUNCORE_AUTH_EMAILPASSWORD}'),
 ('auth.mfaenabled','${RUNCORE_AUTH_MFAENABLED}'),
 ('auth.mfamethods','${RUNCORE_AUTH_MFAMETHODS}'),
@@ -402,7 +402,7 @@ CREATE OR REPLACE FUNCTION auth.hmac_sign(
   algorithm text
 ) RETURNS text AS $$
   SELECT auth.encode(
-    @extschema@.hmac(
+    hmac(
       input, 
       secret, 
       CASE algorithm
@@ -480,70 +480,70 @@ CREATE OR REPLACE FUNCTION auth.setup(
   email email,
   password password
 ) RETURNS boolean AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.setup(
   phone phone,
   password password
 ) RETURNS boolean AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.login(
   email email,
   password password
 ) RETURNS jwt AS $$
-  SELECT 1;
+  SELECT '0.0.0'::jwt;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.login(
   phone phone,
   password password
 ) RETURNS jwt AS $$
-  SELECT 1;
+  SELECT '0.0.0'::jwt;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.magic(
   email email
 ) RETURNS boolean AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.magic(
   phone phone
 ) RETURNS boolean AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.token(
 ) RETURNS jwt AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.token(
   token jwt
 ) RETURNS jwt AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.change(
   user_id uuid,
   email email
 ) RETURNS boolean AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.change(
   user_id uuid,
   phone phone
 ) RETURNS boolean AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE FUNCTION auth.change(
   user_id uuid,
   password password
 ) RETURNS boolean AS $$
-  SELECT 1;
+  SELECT true;
 $$ LANGUAGE sql;
