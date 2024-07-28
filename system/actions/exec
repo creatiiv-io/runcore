@@ -6,7 +6,7 @@ function completion() {
   local subact=( "${@:2}" )
 
   if [ "$action" = exec ] && [ "${#subact[@]}" = 1 ]; then
-    compgen -W "$(runcompose development config --services)" -- "$subact"
+    compgen -W "$(runcompose config --services)" -- "$subact"
   fi
 }
 

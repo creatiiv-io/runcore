@@ -6,10 +6,7 @@ function completion() {
   local subact=( "${@:2}" )
 
   if [ "$action" = reset ] && [ "${#subact[@]}" = 1 ]; then
-    compgen -W "$({
-      runcompose development config --services
-      runcompose production config --services
-    } | uniq)" -- "$subact"
+    compgen -W "$(runcompose config --services)" -- "$subact"
   fi
 }
 
@@ -30,8 +27,7 @@ function reset() {
   # make sure we want to do this
   confirm "Do you really want to delete all data for ${1:-containers}? - CANNOT BE UNDONE!!!" || return
 
-  runcompose development down $1
-  runcompose production down $1
+  runcompose down $1
 
   local volumes="$(docker volume ls -q | cleanroom grep '"'\${CORE_RUNNAME}_$1'"')"
 

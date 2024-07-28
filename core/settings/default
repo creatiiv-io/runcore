@@ -1,5 +1,6 @@
 setting:configuration
-caddy.domain:localhost
+deploy.domain:localhost
+deploy.services:caddy,postgres,hasura,redis,ipfs,cluster,livekit
 hasura.adminsecret:runcore-development-environment
 hasura.anonymous.role:public
 hasura.corsdisabled:false
@@ -13,7 +14,7 @@ hasura.enabledevmode:false
 hasura.enablewscookies:false
 hasura.eventpoolsize:100
 hasura.extrafeatures:inherited_roles,optimize_permission_filters,naming_convention,streaming_subscriptions,apollo_federation,hide_update_many_fields,bigquery_string_numeric_input,hide_aggregation_predicates,hide_stream_fields,disable_postgres_arrays
-hasura.jwtsecret:4e417922b7f29bd65d73067557db26e20662438a072757293c10e2c9bb90f1a2
+hasura.jwtsecret:O9a6t7Cfnr8iEGgwWjlUDbU4eT3vxSTJogBvGFPAO7zYsJYaez6vb8VCmSJDc34X
 hasura.liverefresh:1000
 hasura.loglevel:warn
 hasura.logtype:startup,http-log,webhook-log,websocket-log,query-log
@@ -21,7 +22,7 @@ hasura.numberstring:false
 hasura.translationmode:read-committed
 hasura.useallowlist:true
 hasura.usepreparedstatements:true
-ipfs.clustersecret:452aaeae8c27b2997c8f0f8212736f677dea8915a58f27ce780acc5a4be90e9e
+ipfs.clustersecret:yts4HsJpLIdu0c2PeXeVhHD5wD0YDBbQifRKMG5nB9J9FS99Mt3yvVZFVspz8iE4
 jwtauth.annonymous:false
 jwtauth.dbpassword:auth_development
 jwtauth.dbusername:runcore_auth
@@ -39,7 +40,8 @@ jwtauth.verifyemail:true
 jwtauth.verifytext:true
 jwtauth.viralrequired:true
 jwtauth.viralshares:5
-livekit.clustersecret:c6088343254ceb1d190a2413e9234b41e141a71f8e2f2be21f2fc6ee13b7cf54
+letters:abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+livekit.clustersecret:EWQZd2glBH3nBH3d3Mqcmc6RyiWHy3WBjrN1RgxKwUW29WRX2NVtbP9JOsEHKArp
 postgres.dbpassword:development
 postgres.dbusername:runcore
-redis.clustersecret:d909d3470e0a9fc1895003e54be5e5097251b2a9acd24bda0c7a5f8b35b8ed69
+redis.clustersecret:Ok5SCKB4lb3aqOYGtRR27SiwJQ1QRdkaufjH5MOZclcpfoLtmUjFoF075V6xIzeS

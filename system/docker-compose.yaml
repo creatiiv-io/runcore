@@ -2,24 +2,18 @@ name: "${CORE_RUNNAME}"
 services:
   caddy:
     image: caddy:2.8.4-alpine
-    profiles:
-      - development
-      - production
     restart: unless-stopped
     volumes:
-      - ${CORE_PUBLIC}:/usr/share/caddy/:ro
-      - ${CORE_SYSTEM}:/etc/caddy/:ro
+      - ${CORE_PUBLIC}:/usr/share/caddy:ro
+      - ${CORE_SYSTEM}:/etc/caddy:ro
       - caddy_certs:/data
       - caddy_config:/config
     working_dir: /etc/caddy
   postgres:
     image: postgres:16-alpine
-    profiles:
-      - development
-      - production
     restart: always
     volumes:
-      - ${CORE_SYSTEM}/pg_scripts/:/usr/local/sbin/:ro
+      - ${CORE_SYSTEM}/pg_scripts/:/usr/local/sbin:ro
       - ${CORE_SYSTEM}/init:/initfiles:ro
       - ${CORE_CONFIG}/config:/datafiles:ro
       - postgres_data:/var/lib/postgresql/data
@@ -64,9 +58,6 @@ services:
       start_period: 20s
   hasura:
     image: hasura/graphql-engine:v2.41.0-ce.cli-migrations-v3.ubi
-    profiles:
-      - development
-      - production
     restart: always
     depends_on:
       postgres:
@@ -112,7 +103,7 @@ services:
       HASURA_GRAPHQL_TX_ISOLATION: "${HASURA_TRANSLATIONMODE}"
       HASURA_GRAPHQL_UNAUTHORIZED_ROLE: "public"
       HASURA_GRAPHQL_USE_PREPARED_STATEMENTS: "${HASURA_USEPREPAREDSTATEMENTS}"
-      RUNCORE_CONSOLE_DOMAIN: "${CADDY_DOMAIN}"
+      RUNCORE_CONSOLE_DOMAIN: "${DEPLOY_DOMAIN}"
     healthcheck:
       test:
         - CMD-SHELL
@@ -124,20 +115,14 @@ services:
     networks:
       default:
         aliases:
-          - ${CADDY_DOMAIN}
+          - ${DEPLOY_DOMAIN}
   redis:
     image: redis:7.2.5-alpine3.20
-    profiles:
-      - development
-      - production
     volumes:
-      - ${CORE_SYSTEM}:/usr/local/etc/redis/:ro
-      - redis_data:/data/
+      - ${CORE_SYSTEM}:/usr/local/etc/redis:ro
+      - redis_data:/data
   ipfs:
     image: ipfs/kubo:v0.29.0
-    profiles:
-      - development
-      - production
     volumes:
       - ipfs_data:/data/ipfs
   cluster:

@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 
-# RUNCORE DEVELOPER CLI 
+# RUNCORE DEVELOPER CLI
+# ©2024 Creatiiv Artists LLC
+# Apache 2.0 License with Eommercial Exception
 
 export INSTALL="http://github.com/creatiiv-io/runcore"
 export GITROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 export DEVCORE=$(grep -l "DEVCORE" "${GITROOT}/runcore" 2>/dev/null)
 export RUNNAME="${0##*/}"
-export RUNCORE="${GITROOT}$([ -z "${DEVCORE:+x}" ] && echo "/.${RUNNAME,,}")"
+export RUNCORE="${GITROOT}$([ -z "${DEVCORE:+x}" ] && echo "/.runcore")"
 export ACTIONS="$RUNCORE/system/actions"
 export SETTING="$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')"
 
 # cleanroom environment
 function cleanroom() {
   local input
+  local error
 
   # Check for piped input
   [ ! -t 0 ] && input=$(mktemp) && cat - > "$input"
@@ -21,7 +24,6 @@ function cleanroom() {
     # always run from git root
     echo cd '"'$GITROOT'"'
     echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
-    echo export CORE_DEVMODE='"'$([ -n "${DEVCORE:+x}" ] && DEVCORE="true" || DEVCORE="false")'"'
 
     # set defaults, get settings, get overides
     toenvexport "${RUNCORE}/system/default.env"
@@ -32,12 +34,21 @@ function cleanroom() {
     toenvexport "${RUNCORE}/system/override.settings"
     toenvexport "${RUNCORE}/system/override.env"
 
+    echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
+
     # If input was piped, use it with the command, otherwise just run the command
     echo "$@ $([ -n "$input" ] && echo " < $input")"
+
   } |  env -i bash
 
-  # Clean up temporary file
-  [ -n "$input" ] && rm -f "$input"
+  # capture return code
+  error=$?
+
+  # clean up temporary file
+  [ -n "$input" ] && echo rm -f "$input"
+
+  #return error if we have one
+  return $error
 }
 
 # confirm something
@@ -158,7 +169,7 @@ function init() {
     if confirm "You are not in a repo. Run git init?"; then
       git init &>/dev/null
       GITROOT="."
-      RUNCORE="./.${RUNNAME,,}"
+      RUNCORE="./.runcore"
     else
       echo "Initialization aborted."
       exit 1
@@ -171,7 +182,7 @@ function init() {
   #install runcore submodule
   (
     cd "$GITROOT"
-    git submodule add "$INSTALL" ".${RUNNAME,,}"
+    git submodule add "$INSTALL" ".runcore"
   ) &>/dev/null
 
   # copy all core files
@@ -195,11 +206,13 @@ function init() {
 function runcompose() {
   servesettings
   cleanroom docker compose \
-    -f '"${CORE_COMPOSE}"' \
-    '$([ -z "${CORE_CUSTOM}" ] && echo -f "${CORE_SYSTEM}/'${1}'.yaml")' \
-    '$([ -z "${CORE_CUSTOM}" ] && echo -f "${CORE_SYSTEM}/'${1}'.yaml")' \
-    --profile "${1}" \
-    "${@:2}"
+    -f "${RUNCORE}/system/docker-compose.yaml" \
+    $([ -f "${GITROOT}/docker-compose.yaml" ] && echo -f "${GITROOT}/docker-compose.yaml") \
+    $([ -f "${GITROOT}/docker-${SETTING}.yaml" ] && echo -f "${GITROOT}/docker-${SETTING}.yaml") \
+    $([ -f "${RUNCORE}/docker-compose.yaml" ] && echo -f "${RUNCORE}/system/docker-compose.yaml") \
+    $([ -f "${RUNCORE}/system/docker-${SETTING}.yaml" ] && echo -f "${RUNCORE}/system/docker-${SETTING}.yaml") \
+    $([ ! -f "${RUNCORE}/system/docker-${SETTING}.yaml" ] && echo -f "${RUNCORE}/system/docker-development.yaml") \
+    "${@}"
 }
 
 # execute inside docker
@@ -237,8 +250,17 @@ function savesettings() {
     echo env
   } | env -i bash | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_|CORE_[^=]+)=/d' | sort | tosettingsfromenv >> "${tempfile}"
 
+  # make sure we have a direcotry ready
+  mkdir -p "${settings%/*}"
+
   # move tempfile to settings
   mv "${tempfile}" "${settings}"
+
+  # remove old settings if we are replacing
+  [ -n "$1" ] && rm -f "$RUNCORE/.settings"
+
+  # link the settings if needed
+  [ ! -f "$RUNCORE/.settings" ] && ln -s "$settings" "$RUNCORE/.settings"
 
   # return settings file
   echo "$settings"
@@ -253,12 +275,6 @@ function servesettings() {
 
   # fill settings file if it doesn't exist
   [ ! -f "$settings" ] && settings=$(savesettings "${settings##*/}")
-
-  # remove old settings if we are replacing
-  [ -n "$1" ] && rm -f "$RUNCORE/.settings"
-
-  # link the settings if needed
-  [ ! -f "$RUNCORE/.settings" ] && ln -s "$settings" "$RUNCORE/.settings"
 }
 
 # convert settings export

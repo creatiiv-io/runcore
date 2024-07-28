@@ -5,8 +5,8 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  if [ "$action" = up ] && [ "${#subact[@]}" = 1 ]; then
-    compgen -W "$(runcompose development config --services)" -- "$subact"
+  if [ "$action" = up ]; then
+    compgen -W "$(runcompose config --services)" -- "$subact"
   fi
 }
 
@@ -25,8 +25,11 @@ function help() {
 # docker up
 function up() {
   local success
+  local services="$@"
 
-  runcompose development up -d "$@"
+  [ -z "${services}" ] && services='${DEPLOY_SERVICES//,/ }'
+
+  runcompose up -d "$services"
 
   success=$?
 

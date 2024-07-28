@@ -6,10 +6,7 @@ function completion() {
   local subact=( "${@:2}" )
 
   if [ "$action" = down ] && [ "${#subact[@]}" = 1 ]; then
-    compgen -W "$({
-      runcompose development config --services
-      runcompose production config --services
-    } | uniq)" -- "$subact"
+    compgen -W "$(runcompose config --services)" -- "$subact"
   fi
 }
 
@@ -29,5 +26,5 @@ function help() {
 case "$1" in
   $'\t') completion "${@:2}";;
   help) help "${@:2}";;
-  down) runcompose development down "${@:2}";;
+  down) runcompose down "${@:2}";;
 esac

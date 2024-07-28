@@ -5,19 +5,19 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  if [ "$action" = log ] && [ "${#subact[@]}" = 1 ]; then
-    compgen -W "$(runcompose development config --services)" -- "$subact"
+  if [ "$action" = logs ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$(runcompose config --services)" -- "$subact"
   fi
 }
 
 # display help
 function help() {
   case $1 in
-    log)
+    logs)
       echo "show logs for docker container"
       ;;
     *)
-      echo "  $RUNNAME log"
+      echo "  $RUNNAME logs"
       ;;
   esac
 }
