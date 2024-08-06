@@ -1,42 +1,10 @@
--- initialize auth user
-DO $$
-BEGIN
-  CREATE ROLE "${RUNCORE_AUTH_USER}" WITH
-    PASSWORD '${RUNCORE_AUTH_PASSWORD}'
-    LOGIN
-    NOINHERIT
-    CREATEROLE
-    NOREPLICATION;
-EXCEPTION WHEN others THEN
-  RAISE NOTICE 'role "${RUNCORE_AUTH_USER}" already exists, skipping';
-END $$;
-
--- make sure we don't add extra stuff
-ALTER ROLE "${RUNCORE_AUTH_USER}" SET search_path TO auth;
-
 -- schema auth
-CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION "${RUNCORE_AUTH_USER}";
-
--- drop to auth user
-SET ROLE "${RUNCORE_AUTH_USER}";
+CREATE SCHEMA IF NOT EXISTS auth;
 
 -- necessary for hasura user to access and track objects
 ALTER DEFAULT PRIVILEGES IN SCHEMA auth
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "${RUNCORE_HASURA_USER}";
 GRANT USAGE ON SCHEMA auth TO "${RUNCORE_HASURA_USER}";
-
-RESET ROLE;
-
--- this is needed in case of events
--- reference: https://hasura.io/docs/latest/deployment/postgres-requirements/
-GRANT USAGE ON SCHEMA hdb_catalog TO "${RUNCORE_AUTH_USER}";
-GRANT CREATE ON SCHEMA hdb_catalog TO "${RUNCORE_AUTH_USER}";
-GRANT ALL ON ALL TABLES IN SCHEMA hdb_catalog TO "${RUNCORE_AUTH_USER}";
-GRANT ALL ON ALL SEQUENCES IN SCHEMA hdb_catalog TO "${RUNCORE_AUTH_USER}";
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA hdb_catalog TO "${RUNCORE_AUTH_USER}";
-
--- restore search_path so citext and other extensions are available
-ALTER ROLE "${RUNCORE_AUTH_USER}" SET search_path TO public;
 
 -- table auth.migrations
 BEGIN;
@@ -55,9 +23,6 @@ BEGIN;
   IS 'Internal table for tracking migrations. Don''t modify its structure as Hasura Auth relies on it to function properly.';
 
   CALL after_create_table('auth.migrations');
-
-  ALTER TABLE auth.migrations
-  OWNER TO "${RUNCORE_AUTH_USER}";
 
   INSERT INTO auth.migrations (id, name, hash)
   VALUES
@@ -93,9 +58,6 @@ BEGIN;
   IS 'Persistent Hasura roles for users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
 
   CALL after_create_table('auth.roles');
-
-  ALTER TABLE auth.roles
-  OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
 -- table auth.users
@@ -116,7 +78,7 @@ BEGIN;
     email_verified boolean NOT NULL DEFAULT false,
     phone_number_verified boolean NOT NULL DEFAULT false,
   
-    default_role entity NOT NULL DEFAULT '${RUNCORE_AUTH_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    default_role entity NOT NULL DEFAULT '${RUNCORE_LOGIN_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
     is_anonymous boolean NOT NULL DEFAULT false,
     disabled boolean NOT NULL DEFAULT false,
@@ -148,9 +110,6 @@ BEGIN;
 
   CALL after_create_table('auth.users');
 
-  ALTER TABLE auth.users
-  OWNER TO "${RUNCORE_AUTH_USER}";
-
   CREATE OR REPLACE TRIGGER auth_users_updated_at
   BEFORE UPDATE ON auth.users
   FOR EACH ROW EXECUTE FUNCTION back.updated_at();
@@ -174,9 +133,6 @@ BEGIN;
   IS 'Roles of users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
 
   CALL after_create_table('auth.user_roles');
-
-  ALTER TABLE auth.user_roles
-  OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
 -- table auth.providers
@@ -191,9 +147,6 @@ BEGIN;
   IS 'Persistent Hasura roles for users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
 
   CALL after_create_table('auth.providers');
-
-  ALTER TABLE auth.providers
-  OWNER TO "${RUNCORE_AUTH_USER}";
 
   INSERT INTO auth.providers (id)
   VALUES
@@ -240,9 +193,6 @@ BEGIN;
 
   CALL after_create_table('auth.user_providers');
 
-  ALTER TABLE auth.user_providers
-  OWNER TO "${RUNCORE_AUTH_USER}";
-
   CREATE OR REPLACE TRIGGER auth_user_providers_updated_at
   BEFORE UPDATE ON auth.user_providers
   FOR EACH ROW EXECUTE FUNCTION back.updated_at();
@@ -269,9 +219,6 @@ BEGIN;
   IS 'User webauthn security keys. Don''t modify its structure as Hasura Auth relies on it to function properly.';
 
   CALL after_create_table('auth.user_security_keys');
-
-  ALTER TABLE auth.user_security_keys
-  OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
 -- table auth.provider_requests
@@ -287,9 +234,6 @@ BEGIN;
   IS 'Oauth requests, inserted before redirecting to the provider''s site. Don''t modify its structure as Hasura Auth relies on it to function properly.';
 
   CALL after_create_table('auth.provider_requests');
-
-  ALTER TABLE auth.provider_requests
-  OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
 -- table auth.refresh_token_types
@@ -302,9 +246,6 @@ BEGIN;
   );
 
   CALL after_create_table('auth.refresh_token_types');
-
-  ALTER TABLE auth.refresh_token_types
-  OWNER TO "${RUNCORE_AUTH_USER}";
 
   INSERT INTO auth.refresh_token_types (value, comment)
   VALUES
@@ -334,9 +275,6 @@ BEGIN;
   USING btree (refresh_token_hash, expires_at, user_id);
 
   CALL after_create_table('auth.refresh_tokens');
-
-  ALTER TABLE auth.refresh_tokens
-  OWNER TO "${RUNCORE_AUTH_USER}";
 COMMIT;
 
 -- table auth.settings
@@ -352,41 +290,48 @@ BEGIN;
   );
 
   CALL after_create_table('auth.settings');
+
+  CREATE OR REPLACE TRIGGER auth_settings_value
+  BEFORE UPDATE ON auth.settings
+  FOR EACH ROW EXECUTE FUNCTION value_to_jsonvalue();
 COMMIT;
 
 -- setting auth.variables
 INSERT INTO auth.settings(setting,value)
 VALUES
-('auth.annonymous','${RUNCORE_AUTH_ANNONYMOUS}'),
-('auth.defaultlanguage','${RUNCORE_AUTH_DEFAULTLANGUAGE}'),
-('auth.defaultrole','${RUNCORE_AUTH_ROLE}'),
-('auth.emailpassword','${RUNCORE_AUTH_EMAILPASSWORD}'),
-('auth.mfaenabled','${RUNCORE_AUTH_MFAENABLED}'),
-('auth.mfamethods','${RUNCORE_AUTH_MFAMETHODS}'),
-('auth.passwordlength','${RUNCORE_AUTH_PASSWORDLENGTH}'),
-('auth.passwordexpires','${RUNCORE_AUTH_PASSWORDEXPIRES}'),
-('auth.jwtsecret','${RUNCORE_AUTH_JWTSECRET}'),
-('auth.sendmagiclink','${RUNCORE_AUTH_MAGICLINK}'),
-('auth.tokenexpires','${RUNCORE_AUTH_TOKENEXPIRES}'),
-('auth.usemultifactor','$(RUNCORE_AUTH_MULTIFACTOR}'),
-('auth.viralrequired','$(RUNCORE_AUTH_VIRALREQUIRED}'),
-('auth.viralshares','$(RUNCORE_AUTH_VIRALSHARES}'),
-('auth.verifycall','$(RUNCORE_AUTH_VERIFY}'),
-('auth.verifyemail','$(RUNCORE_AUTH_VERIFY}'),
-('auth.verifytext','$(RUNCORE_AUTH_VERIFY}');
+('auth.annonymous','${RUNCORE_LOGIN_ANNONYMOUS}'),
+('auth.defaultlanguage','${RUNCORE_LOGIN_DEFAULTLANGUAGE}'),
+('auth.defaultrole','${RUNCORE_LOGIN_ROLE}'),
+('auth.emailpassword','${RUNCORE_LOGIN_EMAILPASSWORD}'),
+('auth.mfaenabled','${RUNCORE_LOGIN_MFAENABLED}'),
+('auth.mfamethods','${RUNCORE_LOGIN_MFAMETHODS}'),
+('auth.mfarequired','$(RUNCORE_LOGIN_MFAREQUIRED}'),
+('auth.passwordlength','${RUNCORE_LOGIN_PASSWORDLENGTH}'),
+('auth.passwordexpires','${RUNCORE_LOGIN_PASSWORDEXPIRES}'),
+('auth.jwtsecret','"${RUNCORE_LOGIN_JWTSECRET}"'),
+('auth.sendmagiclink','${RUNCORE_LOGIN_MAGICLINK}'),
+('auth.tokenexpires','${RUNCORE_LOGIN_TOKENEXPIRES}'),
+('auth.viralrequired','$(RUNCORE_LOGIN_VIRALREQUIRED}'),
+('auth.viralshares','$(RUNCORE_LOGIN_VIRALSHARES}'),
+('auth.verifycall','$(RUNCORE_LOGIN_VERIFY}'),
+('auth.verifyemail','$(RUNCORE_LOGIN_VERIFY}'),
+('auth.verifytext','$(RUNCORE_LOGIN_VERIFY}');
 
 -- function auth.setting
 CREATE OR REPLACE FUNCTION auth.setting(name entity_scoped)
 RETURNS text AS $$
-  SELECT value #>> '{}' FROM auth.settings WHERE setting = name;
+  SELECT s.value #>> '{}'
+  FROM auth.settings s
+  WHERE s.setting = name;
 $$ LANGUAGE sql IMMUTABLE;
 
-
+-- function auth.encode
 CREATE OR REPLACE FUNCTION auth.encode(data bytea)
 RETURNS text AS $$
   SELECT translate(encode(data, 'base64'), E'+/=\n', '-_');
 $$ LANGUAGE sql IMMUTABLE;
 
+-- function auth.decode
 CREATE OR REPLACE FUNCTION auth.decode(data text)
 RETURNS bytea AS $$
   SELECT decode(
@@ -396,6 +341,7 @@ RETURNS bytea AS $$
   );
 $$ LANGUAGE sql IMMUTABLE;
 
+-- function auth.hmac_sign
 CREATE OR REPLACE FUNCTION auth.hmac_sign(
   input text,
   secret text,
@@ -415,6 +361,7 @@ CREATE OR REPLACE FUNCTION auth.hmac_sign(
   );
 $$ LANGUAGE sql IMMUTABLE;
 
+-- function auth.sign_jwt
 CREATE OR REPLACE FUNCTION sign_jwt(
   payload json,
   secret text,
@@ -430,6 +377,7 @@ CREATE OR REPLACE FUNCTION sign_jwt(
   ) AS token;
 $$ LANGUAGE sql IMMUTABLE;
 
+-- function auth.verify_jwt
 CREATE OR REPLACE FUNCTION auth.verify_jwt(
   jwt jwt,
   secret text,
@@ -452,7 +400,8 @@ CREATE OR REPLACE FUNCTION auth.verify_jwt(
   ) jwt
 $$ LANGUAGE sql IMMUTABLE;
 
-CREATE OR REPLACE FUNCTION auth.user_jwt(
+-- function auth.hasura_jwt
+CREATE OR REPLACE FUNCTION auth.hasura_jwt(
   usr auth.users
 ) RETURNS jwt AS $$
   SELECT
@@ -476,6 +425,7 @@ CREATE OR REPLACE FUNCTION auth.user_jwt(
   WHERE au.id = usr.id;
 $$ LANGUAGE sql STABLE;
 
+-- function auth.setup(email, password)
 CREATE OR REPLACE FUNCTION auth.setup(
   email email,
   password password
@@ -483,6 +433,7 @@ CREATE OR REPLACE FUNCTION auth.setup(
   SELECT true;
 $$ LANGUAGE sql;
 
+-- function auth.setup(phone, password)
 CREATE OR REPLACE FUNCTION auth.setup(
   phone phone,
   password password
@@ -490,6 +441,7 @@ CREATE OR REPLACE FUNCTION auth.setup(
   SELECT true;
 $$ LANGUAGE sql;
 
+-- function auth.login(email, password)
 CREATE OR REPLACE FUNCTION auth.login(
   email email,
   password password
@@ -497,6 +449,7 @@ CREATE OR REPLACE FUNCTION auth.login(
   SELECT '0.0.0'::jwt;
 $$ LANGUAGE sql;
 
+-- function auth.login(phone, password)
 CREATE OR REPLACE FUNCTION auth.login(
   phone phone,
   password password
@@ -504,29 +457,34 @@ CREATE OR REPLACE FUNCTION auth.login(
   SELECT '0.0.0'::jwt;
 $$ LANGUAGE sql;
 
+-- function auth.login()
+CREATE OR REPLACE FUNCTION auth.login(
+) RETURNS jwt AS $$
+  SELECT true;
+$$ LANGUAGE sql;
+
+-- function auth.magic(email)
 CREATE OR REPLACE FUNCTION auth.magic(
   email email
 ) RETURNS boolean AS $$
   SELECT true;
 $$ LANGUAGE sql;
 
+-- function auth.magic(phone)
 CREATE OR REPLACE FUNCTION auth.magic(
   phone phone
 ) RETURNS boolean AS $$
   SELECT true;
 $$ LANGUAGE sql;
 
-CREATE OR REPLACE FUNCTION auth.token(
-) RETURNS jwt AS $$
-  SELECT true;
-$$ LANGUAGE sql;
-
+-- function auth.token(token)
 CREATE OR REPLACE FUNCTION auth.token(
   token jwt
 ) RETURNS jwt AS $$
   SELECT true;
 $$ LANGUAGE sql;
 
+-- function auth.change(user_id, email)
 CREATE OR REPLACE FUNCTION auth.change(
   user_id uuid,
   email email
@@ -534,6 +492,7 @@ CREATE OR REPLACE FUNCTION auth.change(
   SELECT true;
 $$ LANGUAGE sql;
 
+-- function auth.change(user_id, phone)
 CREATE OR REPLACE FUNCTION auth.change(
   user_id uuid,
   phone phone
@@ -541,6 +500,7 @@ CREATE OR REPLACE FUNCTION auth.change(
   SELECT true;
 $$ LANGUAGE sql;
 
+-- function auth.change(user_id, password)
 CREATE OR REPLACE FUNCTION auth.change(
   user_id uuid,
   password password

@@ -106,6 +106,10 @@ BEGIN;
   IS 'Preferences set by opts';
 
   CALL after_create_table('opts.preferences');
+
+  CREATE OR REPLACE TRIGGER opts_preferences_value
+  BEFORE UPDATE ON opts.preferences
+  FOR EACH ROW EXECUTE FUNCTION value_to_jsonvalue();
 COMMIT;
 
 -- table opts.settings
@@ -124,6 +128,10 @@ BEGIN;
   IS 'Domains that can be routed';
 
   CALL after_create_table('opts.settings');
+
+  CREATE OR REPLACE TRIGGER opts_settings_value
+  BEFORE UPDATE ON opts.settings
+  FOR EACH ROW EXECUTE FUNCTION value_to_jsonvalue();
 COMMIT;
 
 -- table opts.users

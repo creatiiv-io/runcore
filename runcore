@@ -225,6 +225,9 @@ function savesettings() {
   local settings="${1:-default}"
   local tempfile="${RUNCORE}/.temp_${settings##*/}"
 
+  # make sure we have a settings directory
+  mkdir -p "${GITROOT}/core/settings/":w
+
   # set proper settings location
   settings="${GITROOT}/core/settings/${settings##*/}"
 
@@ -248,7 +251,7 @@ function savesettings() {
     toenvexport "${RUNCORE}/system/override.env"
 
     echo env
-  } | env -i bash | sed -E '/^(#|$)/d; /^(SETTING|SHLVL|PWD|OLDPWD|_|CORE_[^=]+)=/d' | sort | tosettingsfromenv >> "${tempfile}"
+  } | env -i bash | sed -E '/^(#|$)/d; /^(SETTING|LETTERS|SHLVL|PWD|OLDPWD|_|CORE_[^=]+)=/d' | sort | tosettingsfromenv >> "${tempfile}"
 
   # make sure we have a direcotry ready
   mkdir -p "${settings%/*}"

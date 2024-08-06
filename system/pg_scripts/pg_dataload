@@ -7,7 +7,7 @@ if [ "$(id -u)" = '0' ]; then
 fi
 
 # Function to get conflict handling statements from PostgreSQL
-get_conflicts() {
+function gen_conflict_clause() {
   local table=$1
   local update_columns=$2
 
@@ -19,8 +19,30 @@ get_conflicts() {
   " | PGHOST= PGHOSTADDR= psql -v QUIET=1 ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password --no-psqlrc --dbname "$POSTGRES_DB" -t -A
 }
 
+function gen_where_clause() {
+  local table="$1"
+  local temp_table="$2"
+  local headers="$3"
+  local where=""
+
+  # Split headers into an array based on colon delimiter
+  IFS=':' read -r -a columns <<< "$headers"
+
+  for column in "${columns[@]}"
+  do
+    if [ -z "$where" ]; then
+      where="$table.$column = $temp_table.$column"
+    else
+      where="$where AND $table.$column = $temp_table.$column"
+    fi
+  done
+
+  echo "$where"
+}
+
+
 # Function to process each file
-load_datafile() {
+function load_datafile() {
   local table="$1"
   local datafile="/datafiles/$1"
   local headers=$(head -n 1 "$datafile")
@@ -33,7 +55,14 @@ load_datafile() {
   echo 'updating table "'$table'" with new settings'
 
   # Get conflict handling statements for the table
-  local conflict_statements=$(get_conflicts "$table" "$update_columns")
+  local conflict_clause=$(gen_conflict_clause "$table" "$update_columns")
+  local where_clause=$(gen_where_clause "$table" $temp_table" "$headers")
+
+  # Create temp file
+  local tempfile=$(mktemp /tmp/$temp_table.import)
+
+  # modify to add data to temp file
+  sed -E '1 s/^/_:/; 2,$ s/^[^+-]/+&/; 2,$ s/^([+-])(.*)/\1:\2/' "$datafile" > "$tempfile"
 
   # Execute the SQL commands within a single transaction
   local dataload_sql="
@@ -42,13 +71,29 @@ load_datafile() {
     -- Create a temporary table with the same structure as the target table
     CREATE TEMP TABLE $temp_table AS SELECT * FROM $table LIMIT 0;
 
-    -- Copy data from the CSV file into the temporary table
-    \COPY $temp_table($columns) FROM '$datafile' DELIMITER ':' CSV HEADER;
+    -- Add operation column character to the table
+    ALTER TABLE $temp_table
+    ADD COLUMN _ char(1);
 
-    -- Insert data. Handle conflicts if any exist
+    -- Copy data from the CSV file into the temporary table
+    \COPY $temp_table(_, $columns) FROM '$tempfile' DELIMITER ':' CSV HEADER;
+
+    -- Insert data and handle conflicts if any exist
     INSERT INTO $table ($columns)
     SELECT $columns FROM $temp_table
-    $conflict_statements;
+    WHERE $temp_table._='+'
+    $conflict_clause;
+
+    -- Delete based on matching column values
+    DELETE FROM $table
+    USING $temp_table
+    WHERE $temp_table._ = '-' AND $where_clause;
+
+    -- Export updated data back to the original CSV file
+    COPY (
+        SELECT $columns
+        FROM $table
+    ) TO '$datafile' DELIMITER ':' CSV HEADER;
 
     -- Drop the temporary table to clean up
     DROP TABLE IF EXISTS $temp_table;
@@ -59,6 +104,7 @@ load_datafile() {
   # echo "$conflict_statements"
   # echo "$dataload_sql"
   echo "$dataload_sql" | PGHOST= PGHOSTADDR= psql -v QUIET=1 ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password --no-psqlrc --dbname "$POSTGRES_DB" -t -A
+  [ "$?" = 0 ] && "DATA LOADED." || echo "Transaction failed... ROLLBACK."
 }
 
 [ -n "$1" ] && load_datafile $tablename && return

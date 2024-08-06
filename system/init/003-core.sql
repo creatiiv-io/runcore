@@ -44,6 +44,10 @@ BEGIN;
   IS 'Settings with sorting';
 
   CALL after_create_table('core.settings');
+
+  CREATE OR REPLACE TRIGGER core_settings_value
+  BEFORE UPDATE ON core.settings
+  FOR EACH ROW EXECUTE FUNCTION value_to_jsonvalue();
 COMMIT;
 
 -- table core.preferences
@@ -64,6 +68,10 @@ BEGIN;
   IS 'User Preferences with sorting';
 
   CALL after_create_table('core.preferences');
+
+  CREATE OR REPLACE TRIGGER core_settings_value
+  BEFORE UPDATE ON core.settings
+  FOR EACH ROW EXECUTE FUNCTION value_to_jsonvalue();
 COMMIT;
 
 -- table core.languages
@@ -130,23 +138,43 @@ BEGIN;
   CALL after_create_table('core.forms');
 COMMIT;
 
+-- table core.kludges
+BEGIN;
+  CALL watch_create_table('core.kludges');
+
+  CREATE TABLE core.kludges (
+    id uuid PRIMARY KEY,
+    user_id uuid REFERENCES auth.user(id),
+    ip inet NOT NULL,
+    page url NOT NULL,
+    browser text NOT NULL,
+    kludge jsonb NOT NULL,
+    timestamp timestamptz NOT NULL DEFAULT
+  );
+
+  COMMENT ON TABLE core.forms
+  IS 'Table for storing fruntend Kludges';
+
+  CALL after_create_table('core.forms');
+COMMIT;
+
 --- function core.translation
 CREATE OR REPLACE FUNCTION core.translation(language locale)
 RETURNS jsonb AS $$
-WITH inner_agg AS (
-  SELECT
-    category,
-    jsonb_object_agg(
-      ct.thing,
-      jsonb_build_array(
-        ct.translation,
-        ct.description
-      )
-    ) AS category_data
-  FROM core.translations ct
-  WHERE ct.language = language
-  GROUP BY category
-)
+  WITH inner_agg AS (
+    SELECT
+      category,
+      jsonb_object_agg(
+        ct.thing,
+        jsonb_build_array(
+          ct.translation,
+          ct.description
+        )
+      ) AS category_data
+    FROM core.translations ct
+    WHERE ct.language = language
+    GROUP BY category
+  )
 SELECT jsonb_object_agg(category, category_data)
 FROM inner_agg;
 $$ LANGUAGE sql;

@@ -22,10 +22,38 @@ EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "jsonvalue" already exists, skipping';
 END $$;
 
+-- function to_jsonvalue(text)
+CREATE OR REPLACE FUNCTION to_jsonvalue(input text)
+RETURNS jsonvalue AS $$
+DECLARE
+  num_pattern text := '^[0-9]+(\.[0-9]+)?$';
+BEGIN
+  -- Check if the input matches the numeric pattern
+  IF input ~ num_pattern THEN
+    RETURN (to_jsonb(input::numeric))::jsonvalue;
+  -- Check if the input is 'true' or 'false'
+  ELSIF input = 'true' OR input = 'false' THEN
+    RETURN (to_jsonb(input::boolean))::jsonvalue;
+  -- Treat it as text otherwise
+  ELSE
+    RETURN (to_jsonb(input))::jsonvalue;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- function value_to_jsonvalue()
+CREATE OR REPLACE FUNCTION value_to_jsonvalue()
+RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.value := to_jsonvalue(NEW.value::text);
+    RETURN NEW;
+  END
+$$ LANGUAGE plpgsql;
+
 -- domain locale
 DO $$
 BEGIN
-  CREATE DOMAIN locale AS varchar(2)
+  CREATE DOMAIN locale AS char(2)
     CONSTRAINT locale_check CHECK ((VALUE ~ '^[a-z]{2}$'));
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "locale" already exists, skipping';
@@ -37,6 +65,7 @@ BEGIN
   CREATE DOMAIN domain_name AS public.citext
     CONSTRAINT domain_name_check CHECK (
       VALUE ~* '^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])\.)+[a-z]{2,}$'
+      AND LENGTH(VALUE) <= 253
     );
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "domain_name" already exists, skipping';

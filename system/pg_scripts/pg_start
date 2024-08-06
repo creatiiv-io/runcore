@@ -69,10 +69,10 @@ docker_temp_server_start "$@"
 docker_setup_db
 
 # Create database from initfiles
-pg_initdb
+#pg_initdb
 
 # Load data from datafiles
-pg_dataload
+#pg_dataload
 
 # Stop temp server
 docker_temp_server_stop
