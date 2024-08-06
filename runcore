@@ -226,7 +226,7 @@ function savesettings() {
   local tempfile="${RUNCORE}/.temp_${settings##*/}"
 
   # make sure we have a settings directory
-  mkdir -p "${GITROOT}/core/settings/":w
+  mkdir -p "${GITROOT}/core/settings/"
 
   # set proper settings location
   settings="${GITROOT}/core/settings/${settings##*/}"
