@@ -77,7 +77,7 @@ AS $$
   WHERE id = ANY(board.column_ids);
 $$ LANGUAGE sql STABLE;
 
--- help.issues
+-- table help.issues
 BEGIN;
   CALL watch_create_table('help.issues');
   
@@ -98,7 +98,7 @@ BEGIN;
   CALL after_create_table('help.issues');
 COMMIT;
 
--- help.comments
+--table  help.comments
 BEGIN;
   CALL watch_create_table('help.comments');
 
@@ -115,7 +115,7 @@ BEGIN;
   CALL after_create_table('help.comments');
 COMMIT;
 
--- help.relationships
+-- table help.relationships
 BEGIN;
   CALL watch_create_table('help.relationships');
 
@@ -128,7 +128,7 @@ BEGIN;
   CALL after_create_table('help.relationships');
 COMMIT;
 
--- help.relates
+-- table help.relates
 BEGIN;
   CALL watch_create_table('help.relates');
 
@@ -144,3 +144,27 @@ BEGIN;
   CALL after_create_table('help.relates');
 COMMIT;
 
+-- table help.errors
+BEGIN;
+  CALL watch_create_table('help.errors');
+
+  CREATE TABLE help.errors (
+    id uuid PRIMARY KEY,
+    user_id uuid REFERENCES auth.users(id),
+    issue_id uuid REFERENCES help.issues(id),
+    ip inet NOT NULL,
+    page url NOT NULL,
+    browser text NOT NULL,
+    report jsonb NOT NULL,
+    reported_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fixed boolean GENERATED ALWAYS AS (
+      fixed_at IS NOT NULL
+    ) STORED,
+    fixed_at timestamptz
+  );
+
+  COMMENT ON TABLE help.errors
+  IS 'Table for storing frontend errors';
+
+  CALL after_create_table('help.errors');
+COMMIT;

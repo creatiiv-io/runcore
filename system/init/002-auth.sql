@@ -78,7 +78,7 @@ BEGIN;
     email_verified boolean NOT NULL DEFAULT false,
     phone_number_verified boolean NOT NULL DEFAULT false,
   
-    default_role entity NOT NULL DEFAULT '${RUNCORE_LOGIN_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    default_role entity NOT NULL DEFAULT '${RUNCORE_HASURA_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
     is_anonymous boolean NOT NULL DEFAULT false,
     disabled boolean NOT NULL DEFAULT false,
@@ -279,9 +279,10 @@ COMMIT;
 
 -- table auth.settings
 BEGIN;
+  CALL watch_create_table('auth._settings');
   CALL watch_create_table('auth.settings');
 
-  CREATE TABLE auth.settings (
+  CREATE TABLE auth._settings (
     setting entity_scoped PRIMARY KEY,
     datatype datatype GENERATED ALWAYS AS (
       jsonb_typeof(value)
@@ -289,39 +290,26 @@ BEGIN;
     value jsonvalue NOT NULL
   );
 
+  CREATE TABLE auth.settings () INHERITS (auth._settings);
+
   CALL after_create_table('auth.settings');
+  CALL after_create_table('auth._settings');
 
   CREATE OR REPLACE TRIGGER auth_settings_value
   BEFORE UPDATE ON auth.settings
   FOR EACH ROW EXECUTE FUNCTION value_to_jsonvalue();
-COMMIT;
 
--- setting auth.variables
-INSERT INTO auth.settings(setting,value)
-VALUES
-('auth.annonymous','${RUNCORE_LOGIN_ANNONYMOUS}'),
-('auth.defaultlanguage','${RUNCORE_LOGIN_DEFAULTLANGUAGE}'),
-('auth.defaultrole','${RUNCORE_LOGIN_ROLE}'),
-('auth.emailpassword','${RUNCORE_LOGIN_EMAILPASSWORD}'),
-('auth.mfaenabled','${RUNCORE_LOGIN_MFAENABLED}'),
-('auth.mfamethods','${RUNCORE_LOGIN_MFAMETHODS}'),
-('auth.mfarequired','$(RUNCORE_LOGIN_MFAREQUIRED}'),
-('auth.passwordlength','${RUNCORE_LOGIN_PASSWORDLENGTH}'),
-('auth.passwordexpires','${RUNCORE_LOGIN_PASSWORDEXPIRES}'),
-('auth.jwtsecret','"${RUNCORE_LOGIN_JWTSECRET}"'),
-('auth.sendmagiclink','${RUNCORE_LOGIN_MAGICLINK}'),
-('auth.tokenexpires','${RUNCORE_LOGIN_TOKENEXPIRES}'),
-('auth.viralrequired','$(RUNCORE_LOGIN_VIRALREQUIRED}'),
-('auth.viralshares','$(RUNCORE_LOGIN_VIRALSHARES}'),
-('auth.verifycall','$(RUNCORE_LOGIN_VERIFY}'),
-('auth.verifyemail','$(RUNCORE_LOGIN_VERIFY}'),
-('auth.verifytext','$(RUNCORE_LOGIN_VERIFY}');
+  INSERT INTO auth._settings(setting, value)
+  VALUES
+    ('hasura.jwtsecret','"${RUNCORE_HASURA_JWTSECRET}"')
+  ON CONFLICT DO NOTHING;
+COMMIT;
 
 -- function auth.setting
 CREATE OR REPLACE FUNCTION auth.setting(name entity_scoped)
 RETURNS text AS $$
   SELECT s.value #>> '{}'
-  FROM auth.settings s
+  FROM auth._settings s
   WHERE s.setting = name;
 $$ LANGUAGE sql IMMUTABLE;
 
@@ -362,7 +350,7 @@ CREATE OR REPLACE FUNCTION auth.hmac_sign(
 $$ LANGUAGE sql IMMUTABLE;
 
 -- function auth.sign_jwt
-CREATE OR REPLACE FUNCTION sign_jwt(
+CREATE OR REPLACE FUNCTION auth.sign_jwt(
   payload json,
   secret text,
   algorithm text DEFAULT 'HS256'
@@ -382,12 +370,11 @@ CREATE OR REPLACE FUNCTION auth.verify_jwt(
   jwt jwt,
   secret text,
   algorithm text DEFAULT 'HS256'
-) RETURNS TABLE(header, payload, valid) AS $$
+) RETURNS TABLE(header json, payload json, valid boolean) AS $$
   SELECT
     tk.header,
     tk.payload,
-    tk.valid AND
-    tstzrange(
+    tk.signature_ok AND tstzrange(
       to_timestamp(nullif(regexp_replace(tk.payload->>'nbf', '^.*[^0-9.].*$', '', 'g'), '')::double precision),
       to_timestamp(nullif(regexp_replace(tk.payload->>'exp', '^.*[^0-9.].*$', '', 'g'), '')::double precision)
     ) @> CURRENT_TIMESTAMP AS valid
@@ -395,9 +382,9 @@ CREATE OR REPLACE FUNCTION auth.verify_jwt(
     SELECT
       convert_from(auth.decode(r[1]), 'utf8')::json AS header,
       convert_from(auth.decode(r[2]), 'utf8')::json AS payload,
-      r[3] = auth.algorithm_sign(r[1] || '.' || r[2], secret, algorithm) AS signature_ok
-    FROM split_to_array(jwt, '.') r
-  ) jwt
+      r[3] = auth.hmac_sign(r[1] || '.' || r[2], secret, algorithm) AS signature_ok
+    FROM string_to_array(jwt, '.') r
+  ) tk
 $$ LANGUAGE sql IMMUTABLE;
 
 -- function auth.hasura_jwt
@@ -407,7 +394,7 @@ CREATE OR REPLACE FUNCTION auth.hasura_jwt(
   SELECT
     auth.sign_jwt(
       json_build_object(
-        'sub', id::text,
+        'sub', au.id::text,
         'iss', 'Hasura-JWT-Auth',
         'iat', round(extract(EPOCH FROM NOW())),
         'exp', round(extract(EPOCH FROM NOW() + INTERVAL '24 hour')),
@@ -417,12 +404,13 @@ CREATE OR REPLACE FUNCTION auth.hasura_jwt(
           'x-hasura-allowed-roles', json_agg(aur.role)
         )
       ),
-      auth.setting('auth.jwtsecret')
+      auth.setting('hasura.jwtsecret')
     ) AS jwt
   FROM auth.users au
   JOIN auth.user_roles aur
     ON (aur.user_id = au.id)
-  WHERE au.id = usr.id;
+  WHERE au.id = usr.id
+  GROUP BY au.id;
 $$ LANGUAGE sql STABLE;
 
 -- function auth.setup(email, password)

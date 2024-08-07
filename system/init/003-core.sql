@@ -138,26 +138,6 @@ BEGIN;
   CALL after_create_table('core.forms');
 COMMIT;
 
--- table core.kludges
-BEGIN;
-  CALL watch_create_table('core.kludges');
-
-  CREATE TABLE core.kludges (
-    id uuid PRIMARY KEY,
-    user_id uuid REFERENCES auth.user(id),
-    ip inet NOT NULL,
-    page url NOT NULL,
-    browser text NOT NULL,
-    kludge jsonb NOT NULL,
-    timestamp timestamptz NOT NULL DEFAULT
-  );
-
-  COMMENT ON TABLE core.forms
-  IS 'Table for storing fruntend Kludges';
-
-  CALL after_create_table('core.forms');
-COMMIT;
-
 --- function core.translation
 CREATE OR REPLACE FUNCTION core.translation(language locale)
 RETURNS jsonb AS $$

@@ -71,6 +71,18 @@ EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "domain_name" already exists, skipping';
 END $$;
 
+-- domain url
+DO $$
+BEGIN
+  CREATE DOMAIN url AS public.citext
+    CONSTRAINT url_check CHECK (
+      VALUE ~* '^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])\.)+[a-z]{2,}(:[0-9]{0,5})?(?:\/.*)?$'
+      AND LENGTH(VALUE) <= 2048
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'domain "url" already exists, skipping';
+END $$;
+
 -- domain email
 DO $$
 BEGIN
