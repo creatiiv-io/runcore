@@ -279,10 +279,9 @@ COMMIT;
 
 -- table auth.settings
 BEGIN;
-  CALL watch_create_table('auth._settings');
   CALL watch_create_table('auth.settings');
 
-  CREATE TABLE auth._settings (
+  CREATE TABLE auth.settings (
     setting entity_scoped PRIMARY KEY,
     datatype datatype GENERATED ALWAYS AS (
       jsonb_typeof(value)
@@ -290,18 +289,27 @@ BEGIN;
     value jsonvalue NOT NULL
   );
 
-  CREATE TABLE auth.settings () INHERITS (auth._settings);
-
   CALL after_create_table('auth.settings');
-  CALL after_create_table('auth._settings');
 
-  CREATE OR REPLACE TRIGGER auth_settings_value
-  BEFORE UPDATE ON auth.settings
-  FOR EACH ROW EXECUTE FUNCTION value_to_jsonvalue();
-
-  INSERT INTO auth._settings(setting, value)
+  INSERT INTO auth.settings(setting, value)
   VALUES
-    ('hasura.jwtsecret','"${RUNCORE_HASURA_JWTSECRET}"')
+    ('hasura.jwtsecret','"${RUNCORE_HASURA_JWTSECRET}"'),
+    ('login.annonymous','${RUNCORE_LOGIN_ANNONYMOUS}'),
+    ('login.defaultlanguage','"${RUNCORE_LOGIN_DEFAULTLANGUAGE}"'),
+    ('login.defaultrole','"${RUNCORE_LOGIN_DEFAULTROLE}"'),
+    ('login.emailpassword','${RUNCORE_LOGIN_EMAILPASSWORD}'),
+    ('login.mfaenabled','${RUNCORE_LOGIN_MFAENABLED}'),
+    ('login.mfamethods','${RUNCORE_LOGIN_MFAMETHODS}'),
+    ('login.passwordexpires','${RUNCORE_LOGIN_PASSWORDEXPIRES}'),
+    ('login.passwordlength','${RUNCORE_LOGIN_PASSWORDLENGTH}'),
+    ('login.publicrole','"${RUNCORE_LOGIN_PUBLICROLE}"'),
+    ('login.sendmagiclink','${RUNCORE_LOGIN_SENDMAGICLINK}'),
+    ('login.tokenexpires','${RUNCORE_LOGIN_TOKENEXPIRES}'),
+    ('login.verifycall','${RUNCORE_LOGIN_VERIFYCALL}'),
+    ('login.verifyemail','${RUNCORE_LOGIN_VERIFYEMAIL}'),
+    ('login.verifytext','${RUNCORE_LOGIN_VERIFYTEXT}'),
+    ('login.viralrequired','${RUNCORE_LOGIN_VIRALREQUIRED}'),
+    ('login.viralshares','${RUNCORE_LOGIN_VIRALSHARES}')
   ON CONFLICT DO NOTHING;
 COMMIT;
 
@@ -389,7 +397,7 @@ $$ LANGUAGE sql IMMUTABLE;
 
 -- function auth.hasura_jwt
 CREATE OR REPLACE FUNCTION auth.hasura_jwt(
-  usr auth.users
+  user_id uuid
 ) RETURNS jwt AS $$
   SELECT
     auth.sign_jwt(
@@ -409,9 +417,24 @@ CREATE OR REPLACE FUNCTION auth.hasura_jwt(
   FROM auth.users au
   JOIN auth.user_roles aur
     ON (aur.user_id = au.id)
-  WHERE au.id = usr.id
+  WHERE au.id = user_id
   GROUP BY au.id;
-$$ LANGUAGE sql STABLE;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- function auth.hasura_chk
+CREATE OR REPLACE FUNCTION auth.hasura_chk(
+  user_id uuid,
+  jwt jwt
+) RETURNS boolean AS $$
+  SELECT
+    av.valid AND av.payload->>'sub' = au.id::text
+  FROM auth.verify_jwt(
+    jwt,
+    auth.setting('hasura.jwtsecret')
+  ) AS av
+  LEFT JOIN auth.users AS au
+    ON au.id = user_id;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- function auth.setup(email, password)
 CREATE OR REPLACE FUNCTION auth.setup(
@@ -495,3 +518,8 @@ CREATE OR REPLACE FUNCTION auth.change(
 ) RETURNS boolean AS $$
   SELECT true;
 $$ LANGUAGE sql;
+
+REVOKE ALL ON TABLE auth.settings FROM PUBLIC;
+REVOKE ALL ON TABLE auth.settings FROM "${RUNCORE_HASURA_USER}";
+REVOKE ALL ON FUNCTION auth.setting FROM PUBLIC;
+REVOKE ALL ON FUNCTION auth.setting FROM "${RUNCORE_HASURA_USER}";
