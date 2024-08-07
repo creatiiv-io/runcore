@@ -1,16 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Ensure the script is run as the postgres user
+#return variable
+rtn=0
+
+# ensure the script is run as the postgres user
 if [ "$(id -u)" = '0' ]; then
-  # Restart the script as the postgres user
+  # restart the script as the postgres user
   exec gosu postgres "$BASH_SOURCE" "$@"
 fi
 
-# Function to get conflict handling statements from PostgreSQL
+# function to generate conflict clause for inserts
 function gen_conflict_clause() {
   local table=$1
   local update_columns=$2
 
+  # consult the database to build conflict clause
   echo "
     SELECT 'ON CONFLICT ON CONSTRAINT ' || con.conname || ' DO UPDATE SET $update_columns'
     FROM pg_constraint con
@@ -19,15 +23,17 @@ function gen_conflict_clause() {
   " | PGHOST= PGHOSTADDR= psql -v QUIET=1 ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password --no-psqlrc --dbname "$POSTGRES_DB" -t -A
 }
 
+# function to generate where clause for rdeletes
 function gen_where_clause() {
   local table="$1"
   local temp_table="$2"
   local headers="$3"
   local where=""
 
-  # Split headers into an array based on colon delimiter
-  IFS=':' read -r -a columns <<< "$headers"
+  # split headers into an array based on colon delimiter
+  IFS=":" read -r -a columns <<< "$headers"
 
+  # loop through columns to build where clause
   for column in "${columns[@]}"
   do
     if [ -z "$where" ]; then
@@ -40,31 +46,21 @@ function gen_where_clause() {
   echo "$where"
 }
 
-
-# Function to process each file
-function load_datafile() {
+# function to process each file
+function load_sql_data() {
   local table="$1"
-  local datafile="/datafiles/$1"
+  local datafile="$2"
   local headers=$(head -n 1 "$datafile")
   local columns=${headers//:/, }
-  local update_columns=$(echo $columns | sed 's/[^,]*/\0 = EXCLUDED.&/g')
+  local update_columns=$(echo "$columns" | sed 's/[^,]*/\0 = EXCLUDED.&/g')
   local temp_table="temp_data_${table//./_}"
+  local conflict_clause="$(gen_conflict_clause "$table" "$update_columns")"
+  local where_clause="$(gen_where_clause "$table" "$temp_table" "$headers")"
 
-  [ ! -f "$datafile" ] && echo 'datafile not found for table "'$table'".' && return
+  # log that we are starting
+  echo "updating table \"$table\" with new settings..."
 
-  echo 'updating table "'$table'" with new settings'
-
-  # Get conflict handling statements for the table
-  local conflict_clause=$(gen_conflict_clause "$table" "$update_columns")
-  local where_clause=$(gen_where_clause "$table" $temp_table" "$headers")
-
-  # Create temp file
-  local tempfile=$(mktemp /tmp/$temp_table.import)
-
-  # modify to add data to temp file
-  sed -E '1 s/^/_:/; 2,$ s/^[^+-]/+&/; 2,$ s/^([+-])(.*)/\1:\2/' "$datafile" > "$tempfile"
-
-  # Execute the SQL commands within a single transaction
+  # execute the SQL commands within a single transaction
   local dataload_sql="
     BEGIN;
 
@@ -72,11 +68,10 @@ function load_datafile() {
     CREATE TEMP TABLE $temp_table AS SELECT * FROM $table LIMIT 0;
 
     -- Add operation column character to the table
-    ALTER TABLE $temp_table
-    ADD COLUMN _ char(1);
+    ALTER TABLE $temp_table ADD COLUMN _ char(1);
 
     -- Copy data from the CSV file into the temporary table
-    \COPY $temp_table(_, $columns) FROM '$tempfile' DELIMITER ':' CSV HEADER;
+    COPY $temp_table(_, $columns) FROM '$datafile' DELIMITER ':' CSV HEADER;
 
     -- Insert data and handle conflicts if any exist
     INSERT INTO $table ($columns)
@@ -87,9 +82,9 @@ function load_datafile() {
     -- Delete based on matching column values
     DELETE FROM $table
     USING $temp_table
-    WHERE $temp_table._ = '-' AND $where_clause;
+    WHERE $temp_table._='-' AND $where_clause;
 
-    -- Export updated data back to the original CSV file
+    -- Export updated data back to the datafile file
     COPY (
         SELECT $columns
         FROM $table
@@ -104,16 +99,61 @@ function load_datafile() {
   # echo "$conflict_statements"
   # echo "$dataload_sql"
   echo "$dataload_sql" | PGHOST= PGHOSTADDR= psql -v QUIET=1 ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password --no-psqlrc --dbname "$POSTGRES_DB" -t -A
-  [ "$?" = 0 ] && "DATA LOADED." || echo "Transaction failed... ROLLBACK."
+
+  # log return
+  local rtn="$?"
+
+  # show success message
+  [ "$rtn" = 0 ] && "DATA LOADED." || echo "DATA FAILED."
+
+  # pass on return
+  return $rtn
 }
 
-[ -n "$1" ] && load_datafile $tablename && return
+# function to load the datafile
+function load_datafile() {
+  local table="$1"
+  local datafile="/datafiles/$table"
 
-# Process each table in the correct order
+  # make sure we have a tempfile
+  [ ! -f "$datafile" ] && echo "datafile not found for table \"$table\"." && return
+
+  # create tempfile
+  local tempfile="$(mktemp "/tmp/datafile_$table.XXXXXX")"
+
+  # modify to add data to tempfile
+  sed -E '1 s/^/_:/; 2,$ s/^[^+-]/+&/; 2,$ s/^([+-])(.*)/\1:\2/' "$datafile" > "$tempfile"
+
+  # load the sql data from tempfile
+  load_sql_data "$table" "$tempfile" >&2
+
+  # log return
+  local rtn="$?"
+
+  # if successful cat tempfile
+  [ "$rtn" = 0 ] && cat "$tempfile"
+
+ # then remove tempfile
+  rm -rf "$tempfile"
+
+  # pass on return
+  return $rtn
+}
+
+# if we have a file passed in process that file
+[ -n "$1" ] && load_datafile $1 && exit $?
+
+# otherwise process tables in the correct order
 for tablename in $(pg_tableorder); do
-  # Check if the file exists in the datafiles
+  # check if the file exists in the datafiles
   if [ -f "/datafiles/$tablename" ]; then
     # load data from file
-    load_datafile "$tablename"
+    load_datafile "$tablename" 1>/dev/null 2>&1
+
+    # aggregate return
+    rtn=$((rtn + 1))
   fi
 done
+
+# return
+exit $rtn
