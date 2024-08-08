@@ -299,7 +299,7 @@ BEGIN;
     ('login.defaultrole','"${RUNCORE_LOGIN_DEFAULTROLE}"'),
     ('login.emailpassword','${RUNCORE_LOGIN_EMAILPASSWORD}'),
     ('login.mfaenabled','${RUNCORE_LOGIN_MFAENABLED}'),
-    ('login.mfamethods','${RUNCORE_LOGIN_MFAMETHODS}'),
+    ('login.mfamethods','"${RUNCORE_LOGIN_MFAMETHODS}"'),
     ('login.passwordexpires','${RUNCORE_LOGIN_PASSWORDEXPIRES}'),
     ('login.passwordlength','${RUNCORE_LOGIN_PASSWORDLENGTH}'),
     ('login.publicrole','"${RUNCORE_LOGIN_PUBLICROLE}"'),

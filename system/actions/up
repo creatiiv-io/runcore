@@ -41,8 +41,6 @@ function up() {
   echo "  Runcore is up. Next try:"
   echo ""
   echo "  $RUNNAME website"
-  echo "  $RUNNAME mobile"
-  echo "  $RUNNAME desktop"
   echo "  $RUNNAME console"
   echo "  $RUNNAME sql"
   echo ""
