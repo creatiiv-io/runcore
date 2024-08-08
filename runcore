@@ -38,7 +38,6 @@ function cleanroom() {
 
     # If input was piped, use it with the command, otherwise just run the command
     echo "$@ $([ -n "$input" ] && echo " < $input")"
-
   } |  env -i bash
 
   # capture return code
@@ -92,6 +91,13 @@ function completion(){
   esac
 
   [ -f "$ACTIONS/$action" ] && source "$ACTIONS/$action" $'\t' "$action" "${subact[@]}"
+}
+
+# force death
+function die() {
+  echo -e "$1" >&2
+
+  exit 1
 }
 
 # delegate to extensions
@@ -207,6 +213,11 @@ function isup() {
   [ -n "$(runcompose ps -q "$1" 2>/dev/null)" ] 
 }
 
+# force death if not up
+function isupordie() {
+  isup "$1" || die "${RUNNAME^} ${1^} is not running yet...\n\n  $RUNNAME up\n  $RUNNAME up $1"
+}
+
 # docker compose
 function runcompose() {
   servesettings
@@ -229,13 +240,8 @@ function runexec() {
     shift
   done
 
-  if isup "$1"; then
-    docker exec "${flags[@]}" "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
-  else
-    echo -e "${RUNNAME^} ${1^} is not running yet...\n\n  $RUNNAME up\n  $RUNNAME up $1" >&2
-
-    exit 1
-  fi
+  isupordie "$1"
+  docker exec "${flags[@]}" "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
 }
 
 # serve settings
@@ -296,6 +302,13 @@ function servesettings() {
 
   # fill settings file if it doesn't exist
   [ ! -f "$settings" ] && settings=$(savesettings "${settings##*/}")
+}
+
+# return setting
+function setting() {
+  local setting="${1^^}"
+
+  cleanroom echo $"${setting//./_}"
 }
 
 # convert settings export

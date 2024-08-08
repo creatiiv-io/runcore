@@ -12,6 +12,13 @@ function help() {
   esac
 }
 
+# display website
+function website() {
+  isupordie caddy
+
+  xdg-open "http://$(setting domain.name)/"
+}
+
 # run something
 case $1 in
   help) help ${@:2};;
