@@ -1,20 +1,5 @@
 #!/usr/bin/env bash
 
-#bash completion
-function completion() {
-  local action="$1"
-  local subact=( "${@:2}" )
-
-  case "$action" in
-    help)
-      echo up-help
-      ;;
-    sql) 
-      compgen -W "$(containers development config --services)" -- "$subact"
-      ;;
-  esac
-}
-
 # display help
 function help() {
   case $1 in
@@ -29,7 +14,6 @@ function help() {
 
 # run something
 case "$1" in
-  $'\t') completion "${@:2}";;
   help) help "${@:2}";;
-  sql) runexec postgres pg_psql "${@:2}";;
+  sql) runexec -it postgres pg_psql "${@:2}";;
 esac

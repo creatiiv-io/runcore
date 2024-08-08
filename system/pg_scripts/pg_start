@@ -50,7 +50,7 @@ docker_setup_db
 pg_initdb
 
 # Load data from datafiles
-#pg_dataload
+pg_dataload
 
 # Stop temp server
 docker_temp_server_stop

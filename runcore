@@ -217,7 +217,14 @@ function runcompose() {
 
 # execute inside docker
 function runexec() {
-  docker exec -it "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
+  local flags=( )
+
+  while [[ $# -gt 0 && $1 == -* ]]; do
+    flags+=( "$1" )
+    shift
+  done
+
+  docker exec "${flags[@]}" "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
 }
 
 # serve settings

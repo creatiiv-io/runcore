@@ -5,7 +5,7 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  if [ "$action" = config ] && [ -z "$subact" ]; then
+  if [ "$action" = env ] && [ "${#subact[@]}" = 1 ]; then
     compgen -W "$(ls "${GITROOT}/core/config")" -- "$subact"
   fi
 }
@@ -26,29 +26,32 @@ function help() {
 function config() {
   local config="${GITROOT}/core/config/${1}"
   local action="${@:2}"
+  local rtn
 
   # make sure we have a valid config file
   [ ! -f "$config" ] && echo "Not a valid config." && return
 
+  local tempfile="$(mktemp "/tmp/runcore.XXXXXX")"
+
   # if we have an action
   if [ -n "$action" ]; then
-    local tempfile="$(mktemp -t "/tmp/runcore.XXXXXX")"
-
     # make sure the action is vailid
     [[ ! "$action" =~ ^[+-]([^:]+:?)+$ ]] && echo "Invalid action." && return
 
     # add line to file
     echo "$action" >> "$config"
-
-    # run dataload and send output to tempfile
-    runexec postgres pg_dataload "$1" > "$tempfile"
-
-    # copy tempfile if we didn't have errors
-    [ "$?" = 0 ] && cat "$tempfile" > "$config"
-
-    # remove tempfile
-    rm -rf "$tempfile"
   fi
+
+  # run dataload and send output to tempfile
+  runexec postgres pg_dataload "$1" 2> >(sed '1d' >&2) 1>"$tempfile"
+
+  rtn=$?
+
+  # copy tempfile if we didn't have errors
+  [ "$?" = 0 ] && cat "$tempfile" > "$config"
+
+  # remove tempfile
+  rm -rf "$tempfile"
 
   # return config
   cat "$config"

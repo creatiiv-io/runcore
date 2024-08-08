@@ -5,8 +5,8 @@ function completion() {
   local action="$1"
   local subact=( "${@:2}" )
 
-  if [ "$action" = settings ] && [ -z "$subact" ]; then
-    compgen -W "core.environment $(sed '1d; s/:.*$//' "$RUNCORE/.settings")" -- "$subact"
+  if [ "$action" = env ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$(sed '1d; s/:.*$//' "$RUNCORE/.settings")" -- "$subact"
   fi
 }
 
