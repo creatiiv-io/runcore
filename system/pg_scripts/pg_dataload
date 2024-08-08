@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-#return variable
-rtn=0
-
 # ensure the script is run as the postgres user
 if [ "$(id -u)" = '0' ]; then
   # restart the script as the postgres user
@@ -58,7 +55,7 @@ function load_sql_data() {
   local delete_clause="$(gen_delete_clause "$table" "$temp_table" "$headers")"
 
   # log that we are starting
-  echo -ne "NOTICE:\tLoading \"$table\" with config data... "
+  echo -ne "NOTICE:\t data \"$table\" loading from config... "
 
   # execute the SQL commands within a single transaction
   local dataload_sql="
@@ -153,10 +150,7 @@ for tablename in $(pg_tableorder); do
     # load data from file
     (load_datafile "$tablename" 1>/dev/null) 2>&1
 
-    # aggregate return
-    rtn=$((rtn + 1))
+    # throw error if one happened
+    [ "$?" = 0 ] || exit 1
   fi
 done
-
-# return
-exit $rtn

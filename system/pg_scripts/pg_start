@@ -27,13 +27,9 @@ if [ -z "$DATABASE_ALREADY_EXISTS" ]; then
 	docker_init_database_dir
 	pg_setup_hba_conf "$@"
 
-	cat <<-'EOM'
-		Data directory created and setup
-	EOM
+	echo "DATABASE NEWLY CREATED AND SETUP!"
 else
-	cat <<-'EOM'
-		Data directory initialized
-	EOM
+	echo "DATABASE PREVIOUSLY INITIALIZED."
 fi
 
 # PGPASSWORD is required for psql when authentication is required for 'local' connections via pg_hba.conf and is otherwise harmless
@@ -56,6 +52,8 @@ pg_dataload
 docker_temp_server_stop
 
 unset PGPASSWORD
+
+echo "READY FOR PRIMETIME!!!"
 
 # Run main server
 exec "$@"

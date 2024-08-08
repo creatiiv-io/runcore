@@ -30,5 +30,8 @@ for init in /initfiles/*.sql; do
 
     # pipe the content directly to psql
     echo "$content" | PGHOST= PGHOSTADDR= psql -v QUIET=1 --username "$POSTGRES_USER" --no-password --no-psqlrc --dbname "$POSTGRES_DB"
+
+    # throw error if one happened
+    [ "$?" = 0 ] || exit 1
   fi
 done

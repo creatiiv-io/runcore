@@ -44,7 +44,7 @@ function cleanroom() {
   error=$?
 
   # clean up temporary file
-  [ -n "$input" ] && echo rm -f "$input"
+  [ -n "$input" ] && rm -f "$input"
 
   #return error if we have one
   return $error
@@ -308,7 +308,7 @@ function servesettings() {
 function setting() {
   local setting="${1^^}"
 
-  cleanroom echo $"${setting//./_}"
+  cleanroom echo "\$${setting//./_}"
 }
 
 # convert settings export

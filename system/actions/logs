@@ -28,7 +28,7 @@ function logs() {
 
   $RUNNAME logs [service]" && return
 
-  cleanroom docker logs \${CORE_RUNNAME}-$1-1 "${@:2}"
+  cleanroom docker logs -f \${CORE_RUNNAME}-$1-1 "${@:2}"
 }
 
 # run something

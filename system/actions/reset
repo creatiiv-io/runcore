@@ -31,6 +31,8 @@ function reset() {
 
   local volumes="$(docker volume ls -q | cleanroom grep '"'\${CORE_RUNNAME}_$1'"')"
 
+  echo $volumes
+
   if [ -z "$volumes" ]; then
     echo "no data volumes found"
   else 

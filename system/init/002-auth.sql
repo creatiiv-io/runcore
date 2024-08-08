@@ -317,7 +317,7 @@ COMMIT;
 CREATE OR REPLACE FUNCTION auth.setting(name entity_scoped)
 RETURNS text AS $$
   SELECT s.value #>> '{}'
-  FROM auth._settings s
+  FROM auth.settings s
   WHERE s.setting = name;
 $$ LANGUAGE sql IMMUTABLE;
 

@@ -16,7 +16,11 @@ function help() {
 function website() {
   isupordie caddy
 
-  xdg-open "http://$(setting domain.name)/"
+  local url="http://$(setting deploy.domain)/"
+
+  echo "Opening Website: $url"
+
+  xdg-open "$url"
 }
 
 # run something
