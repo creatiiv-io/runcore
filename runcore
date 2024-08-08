@@ -202,6 +202,11 @@ function init() {
   echo "  git commit -m '$RUNNAME ${is_old:+re}installed'"
 }
 
+# check if container is up
+function isup() {
+  [ -n "$(runcompose ps -q "$1" 2>/dev/null)" ] 
+}
+
 # docker compose
 function runcompose() {
   servesettings
@@ -224,7 +229,13 @@ function runexec() {
     shift
   done
 
-  docker exec "${flags[@]}" "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
+  if isup "$1"; then
+    docker exec "${flags[@]}" "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
+  else
+    echo "Process \"$1\" is not running..."
+
+    return 1
+  fi
 }
 
 # serve settings
