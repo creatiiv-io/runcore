@@ -58,7 +58,7 @@ function load_sql_data() {
   local delete_clause="$(gen_delete_clause "$table" "$temp_table" "$headers")"
 
   # log that we are starting
-  echo -n "updating table \"$table\" with new settings... "
+  echo -ne "NOTICE:\tLoading \"$table\" with config data... "
 
   # execute the SQL commands within a single transaction
   local dataload_sql="

@@ -1,4 +1,4 @@
-- name: appcore
+- name: runcore
   kind: postgres
   configuration:
     connection_info:
@@ -6,5 +6,5 @@
         from_env: HASURA_GRAPHQL_DATABASE_URL
       isolation_level: read-committed
       use_prepared_statements: false
-  tables: "!include appcore/tables/tables.yaml"
-  functions: "!include appcore/functions/functions.yaml"
+  tables: "!include runcore/tables/tables.yaml"
+  functions: "!include runcore/functions/functions.yaml"

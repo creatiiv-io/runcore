@@ -48,8 +48,8 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-#- pg_isready -U ${POSTGRES_DBUSERNAME:-runcore} -d appcore -q
-        - timeout 1s bash -c ':> /dev/tcp/127.0.0.1/5432' || exit 1
+        - pg_isready -U ${POSTGRES_DBUSERNAME:-runcore} -d runcore -q
+#- timeout 1s bash -c ':> /dev/tcp/127.0.0.1/5432' || exit 1
       timeout: 60s
       interval: 5s
       start_period: 20s
