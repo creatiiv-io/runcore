@@ -232,9 +232,9 @@ function runexec() {
   if isup "$1"; then
     docker exec "${flags[@]}" "${GITROOT##*/}-$(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')-${1}-1" "${@:2}"
   else
-    echo "Process \"$1\" is not running..."
+    echo -e "${RUNNAME^} ${1^} is not running yet...\n\n  $RUNNAME up\n  $RUNNAME up $1" >&2
 
-    return 1
+    exit 1
   fi
 }
 

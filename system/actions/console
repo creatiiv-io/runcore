@@ -13,7 +13,9 @@ function help() {
 }
 
 function console() {
-  runexec hasura bash -c '
+  local url
+
+  runexec -i hasura bash -c '
     echo "version: 3" > config.yaml
 
     hasura-cli console \
@@ -26,7 +28,7 @@ function console() {
     --static-dir /srv/console-assets \
     --console-hge-endpoint http://${RUNCORE_CONSOLE_DOMAIN}
   ' | while IFS= read -r line; do
-    url=$(echo "$line" | sed -n 's/^.*\(http:\/\/[^:]*\).*$/\1/p')
+    [ -z "$url" ] && url=$(echo "$line" | sed -n 's/^.*\(http:\/\/[^:]*\).*$/\1/p')
 
     if [ -n "$url" ]; then
       echo "Opening Console: $url/console"
