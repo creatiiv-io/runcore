@@ -32,8 +32,9 @@ function console() {
     if [ -z "$url" ]; then
       url=$(echo "$line" | sed -n 's/^.*\(http:\/\/[^:]*\).*$/\1/p')
 
-      echo -e "Opening Console: $url/console"
-      xdg-open "$url/console"
+      [ -n "$url" ] && echo -e "Opening Console: $url/console"
+      [ -n "$url" ] && xdg-open "$url/console"
+      [ -z "$url" ] && echo "$line"
     fi
   done
 }
