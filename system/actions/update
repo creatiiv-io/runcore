@@ -7,7 +7,7 @@ function help() {
       echo "update runcore to a newer version"
       ;;
     *)
-      echo "  $RUNNAME update"
+      echo "  $RUNNAME update*"
       ;;
   esac
 }

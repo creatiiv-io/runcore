@@ -7,7 +7,7 @@ function help() {
       echo "Customize Docker and Caddy files"
       ;;
     *)
-      echo "  $RUNNAME custom"
+      echo "  $RUNNAME custom*"
       ;;
   esac
 }

@@ -7,7 +7,7 @@ function help() {
       echo "deploy a production environment"
       ;;
     *)
-      echo "  $RUNNAME deploy"
+      echo "  $RUNNAME deploy*"
       ;;
   esac
 }
