@@ -4,7 +4,7 @@
 # ©2024 Creatiiv Artists LLC
 # Apache 2.0 License with Eommercial Exception
 
-export INSTALL="http://github.com/creatiiv-io/runcore"
+export INSTALL="http://github.com/creatiiv-io/"
 export GITROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 export DEVCORE=$(grep -l "DEVCORE" "${GITROOT}/runcore" 2>/dev/null)
 export RUNNAME="${0##*/}"
@@ -127,7 +127,7 @@ function filematch() {
 function help() {
   case $1 in
     init)
-      echo "initialize the current directory or one passed with runcore"
+      echo "initialize the current directory"
       ;;
     version)
       echo "version number will either show the base CLI version or the specific version of runcore for your directory"
@@ -164,11 +164,7 @@ function help() {
 
 # initialize repo
 function init() {
-  if [ -n "$1" ]; then
-    mkdir -p "$1"
-    cd "$1"
-    exec "$RUNNAME" init
-  fi
+  local app="${1:-runcore}"
 
   # check if we are not in a git repository
   if [ -z "$GITROOT" ]; then
@@ -188,7 +184,7 @@ function init() {
   #install runcore submodule
   (
     cd "$GITROOT"
-    git submodule add "$INSTALL" ".runcore"
+    git submodule add "${INSTALL}/${app}" ".runcore"
   ) &>/dev/null
 
   # copy all core files

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# display help
+function help() {
+  case $1 in
+    register)
+      echo "show logs for docker container"
+      ;;
+    *)
+      echo "  $RUNNAME register"
+      ;;
+  esac
+}
+
+# register email
+function register() {
+  [ -z "$1" ] && echo "Usage:
+
+  $RUNNAME register [email]" && return
+
+  # check if .secret.pub exists
+  # if so
+  # check for email in .secret.pub
+  # if not match email
+}
+
+# run something
+case "$1" in
+  $'\t') completion "${@:2}";;
+  help) help "${@:2}";;
+  logs) logs "${@:2}";;
+esac

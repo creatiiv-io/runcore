@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# bash completion
+function completion() {
+  local action="$1"
+  local subact=( "${@:2}" )
+
+  if [ "$action" = env ] && [ "${#subact[@]}" = 1 ]; then
+    compgen -W "$(ls "${GITROOT}/core/settings}")" -- "$subact"
+  fi
+}
+
+# display help
+function help() {
+  case $1 in
+    overlay)
+      echo "change settings overlay"
+      ;;
+    *)
+      echo "  $RUNNAME overlay"
+      ;;
+  esac
+}
+
+# show overlay
+function overlay() {
+  servesettings "${1}"
+
+  echo "${RUNNAME^} Environment: $(readlink "${RUNCORE}/.settings" | sed -e 's/^.*\///')"
+}
+
+# run something
+case "$1" in
+  $'\t') completion "${@:2}";;
+  help) help "${@:2}";;
+  overlay) overlay "${@:2}";;
+esac
