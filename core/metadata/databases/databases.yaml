@@ -8,16 +8,149 @@
       use_prepared_statements: false
   logical_models:
     - fields:
-        - name: value
+        - name: success
           type:
-            nullable: true
+            nullable: false
             scalar: boolean
-      name: boolean
+      name: success
       select_permissions:
         - permission:
             columns:
-              - value
+              - success
+            filter: {}
+          role: agent
+        - permission:
+            columns:
+              - success
+            filter: {}
+          role: anyone
+        - permission:
+            columns:
+              - success
+            filter: {}
+          role: clerk
+        - permission:
+            columns:
+              - success
+            filter: {}
+          role: coder
+        - permission:
+            columns:
+              - success
+            filter: {}
+          role: owner
+        - permission:
+            columns:
+              - success
+            filter: {}
+          role: paying
+        - permission:
+            columns:
+              - success
             filter: {}
           role: public
+        - permission:
+            columns:
+              - success
+            filter: {}
+          role: system
+        - permission:
+            columns:
+              - success
+            filter: {}
+          role: unpaid
+    - fields:
+        - name: token
+          type:
+            nullable: true
+            scalar: text
+      name: token
+  native_queries:
+    - arguments:
+        email:
+          description: ""
+          nullable: true
+          type: text
+        password:
+          description: ""
+          nullable: true
+          type: text
+        phone:
+          description: ""
+          nullable: true
+          type: text
+      code: |-
+        SELECT CASE
+            WHEN {{email}} IS NOT NULL THEN auth.change(current_setting('request.headers.x-hasura-user-id')::UUID, {{email}}::email)::boolean
+            WHEN {{phone}} IS NOT NULL THEN auth.change(current_setting('request.headers.x-hasura-user-id')::UUID, {{phone}}::phone)::boolean
+            WHEN {{password}} IS NOT NULL THEN auth.change(current_setting('request.headers.x-hasura-user-id')::UUID, {{password}}::password)::boolean
+        END AS success;
+      returns: success
+      root_field_name: auth_change
+    - arguments:
+        email:
+          description: ""
+          nullable: true
+          type: text
+        password:
+          description: ""
+          nullable: true
+          type: text
+        phone:
+          description: ""
+          nullable: true
+          type: text
+      code: |-
+        SELECT CASE
+            WHEN {{email}} IS NULL AND {{phone}} IS NULL THEN auth.login()::text
+            WHEN {{email}} IS NOT NULL THEN auth.login({{email}}::email, {{password}}::password)::text
+            WHEN {{phone}} IS NOT NULL THEN auth.login({{phone}}::phone, {{password}}::password)::text
+        END AS token;
+      returns: token
+      root_field_name: auth_login
+    - arguments:
+        email:
+          description: ""
+          nullable: true
+          type: text
+        phone:
+          description: ""
+          nullable: true
+          type: text
+      code: |-
+        SELECT CASE
+            WHEN {{email}} IS NOT NULL THEN auth.magic({{email}}::email)::boolean
+            WHEN {{phone}} IS NOT NULL THEN auth.magic({{phone}}::phone)::boolean
+        END AS success;
+      returns: success
+      root_field_name: auth_magic
+    - arguments:
+        email:
+          description: ""
+          nullable: true
+          type: text
+        password:
+          description: ""
+          nullable: false
+          type: text
+        phone:
+          description: ""
+          nullable: true
+          type: text
+      code: |-
+        SELECT CASE
+            WHEN {{email}} IS NOT NULL THEN auth.setup({{email}}::email, {{password}}::password)::boolean
+            WHEN {{phone}} IS NOT NULL THEN auth.setup({{phone}}::phone, {{password}}::password)::boolean
+        END AS success;
+      returns: success
+      root_field_name: auth_setup
+    - arguments:
+        vendor_token:
+          description: ""
+          nullable: false
+          type: text
+      code: SELECT auth.token({{vendor_token}})::text AS token;
+      returns: token
+      root_field_name: auth_token
   tables: "!include runcore/tables/tables.yaml"
   functions: "!include runcore/functions/functions.yaml"

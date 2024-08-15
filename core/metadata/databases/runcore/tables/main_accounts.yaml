@@ -23,6 +23,13 @@ array_relationships:
         table:
           name: accounts
           schema: main
+  - name: activations
+    using:
+      foreign_key_constraint_on:
+        column: account_id
+        table:
+          name: activations
+          schema: sale
   - name: agents
     using:
       foreign_key_constraint_on:
@@ -51,6 +58,20 @@ array_relationships:
         table:
           name: invitations
           schema: main
+  - name: invoices
+    using:
+      foreign_key_constraint_on:
+        column: account_id
+        table:
+          name: invoices
+          schema: sale
+  - name: subscriptions
+    using:
+      foreign_key_constraint_on:
+        column: account_id
+        table:
+          name: subscriptions
+          schema: sale
 computed_fields:
   - name: settings
     definition:

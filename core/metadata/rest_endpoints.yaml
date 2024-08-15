@@ -1,1 +1,36 @@
-[]
+- comment: ""
+  definition:
+    query:
+      collection_name: allowed-queries
+      query_name: Change
+  methods:
+    - POST
+  name: Change
+  url: change
+- comment: ""
+  definition:
+    query:
+      collection_name: allowed-queries
+      query_name: Login
+  methods:
+    - POST
+  name: Login
+  url: login
+- comment: ""
+  definition:
+    query:
+      collection_name: allowed-queries
+      query_name: Magic
+  methods:
+    - POST
+  name: Magic
+  url: magic
+- comment: ""
+  definition:
+    query:
+      collection_name: allowed-queries
+      query_name: Setup
+  methods:
+    - POST
+  name: Setup
+  url: setup
