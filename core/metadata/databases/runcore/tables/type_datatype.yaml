@@ -1,0 +1,10 @@
+table:
+  name: datatype
+  schema: type
+configuration:
+  column_config:
+    value:
+      custom_name: datatype
+  custom_column_names:
+    value: datatype
+  custom_root_fields: {}

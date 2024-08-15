@@ -1,11 +1,11 @@
-role
-admin
-coder
-owner
-agent
-clerk
-system
-paying
-unpaid
-anyone
-public
+role:type:description
+admin:hasura:Hasura Superuser
+owner:client:Owner of a Client
+coder:client:Coder within a Client
+agent:client:Agent within a Client
+clerk:client:Clerk within a Client
+system:external:3rd Party System accessing API
+paying:external:Paying Customer of Client
+unpaid:external:Non-paying Customer of Client
+anyone:external:Anonymous Registered Customer of Client
+public:external:Anonymous Unregistered Generic User

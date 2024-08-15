@@ -6,58 +6,20 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA auth
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "${RUNCORE_HASURA_USER}";
 GRANT USAGE ON SCHEMA auth TO "${RUNCORE_HASURA_USER}";
 
--- table auth.migrations
-BEGIN;
-  CALL watch_create_table('auth.migrations');
-
-  CREATE TABLE auth.migrations (
-    id integer PRIMARY KEY,
-
-    name varchar(100) NOT NULL UNIQUE,
-    hash varchar(40) NOT NULL,
-
-    executed_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );
-
-  COMMENT ON TABLE auth.migrations
-  IS 'Internal table for tracking migrations. Don''t modify its structure as Hasura Auth relies on it to function properly.';
-
-  CALL after_create_table('auth.migrations');
-
-  INSERT INTO auth.migrations (id, name, hash)
-  VALUES
-    (0,'create-migrations-table','9c0c864e0ccb0f8d1c77ab0576ef9f2841ec1b68'),
-    (1,'create-initial-tables','c16083c88329c867581a9c73c3f140783a1a5df4'),
-    (2,'custom-user-fields','78236c9c2b50da88786bcf50099dd290f820e000'),
-    (3,'discord-twitch-providers','857db1e92c7a8034e61a3d88ea672aec9b424036'),
-    (4,'provider-request-options','42428265112b904903d9ad7833d8acf2812a00ed'),
-    (5,'table-comments','78f76f88eff3b11ebab9be4f2469020dae017110'),
-    (6,'setup-webauthn','87ba279363f8ecf8b450a681938a74b788cf536c'),
-    (7,'add_authenticator_nickname','d32fd62bb7a441eea48c5434f5f3744f2e334288'),
-    (8,'workos-provider','0727238a633ff119bedcbebfec6a9ea83b2bd01d'),
-    (9,'rename-authenticator-to-security-key','fd7e00bef4d141a6193cf9642afd88fb6fe2b283'),
-    (10,'azuread-provider','f492ff4780f8210016e1c12fa0ed83eb4278a780'),
-    (11,'add_refresh_token_hash_column','62a2cd295f63153dd9f16f3159d1ab2a49b01c2f'),
-    (12,'add_refresh_token_metadata','3daa907e813d1e8b72107112a89916909702897c'),
-    (13,'add_refresh_token_type','0937470d919981a2052e4a00dfaad34378477765'),
-    (14,'alter_refresh_token_type','e23fd094aef2ef926a06ac84000471a829548165'),
-    (15,'rename_refresh_token_column','71e1d7fa6e6056fa193b4ff4d6f8e61cf3f5cd9f'),
-    (16,'index_on_refresh_tokens','f129db784d60b1578ca310d9f49fc9363c257431')
-  ON CONFLICT DO NOTHING;
-COMMIT;
-
 -- table auth.roles
 BEGIN;
   CALL watch_create_table('auth.roles');
 
   CREATE TABLE auth.roles (
-    role entity PRIMARY KEY
+    role entity PRIMARY KEY,
+    type text NOT NULL DEFAULT 'external',
+    description text
   );
 
   COMMENT ON TABLE auth.roles
-  IS 'Persistent Hasura roles for users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
+  IS 'Persistent Hasura roles for users.';
 
-  CALL after_create_table('auth.roles');
+  --CALL after_create_table('auth.roles');
 COMMIT;
 
 -- table auth.users
@@ -115,166 +77,126 @@ BEGIN;
   FOR EACH ROW EXECUTE FUNCTION back.updated_at();
 COMMIT;
 
--- table auth.user_roles
+-- table auth.permissions
 BEGIN;
-  CALL watch_create_table('auth.user_roles');
+  CALL watch_create_table('auth.permissions');
 
-  CREATE TABLE auth.user_roles (
+  CREATE TABLE auth.permissions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    role entity NOT NULL REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    role_name entity NOT NULL REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
-    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    UNIQUE (user_id, role)
+    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
-  COMMENT ON TABLE auth.user_roles
-  IS 'Roles of users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
+  COMMENT ON TABLE auth.permissions
+  IS 'Assigned permissions for a user.';
 
-  CALL after_create_table('auth.user_roles');
+  CALL after_create_table('auth.permissions');
 COMMIT;
 
--- table auth.providers
+-- table auth.verifications
 BEGIN;
-  CALL watch_create_table('auth.providers');
+  CALL watch_create_table('auth.verifications');
 
-  CREATE TABLE auth.providers (
-    id entity PRIMARY KEY
-  );
-
-  COMMENT ON TABLE auth.providers
-  IS 'Persistent Hasura roles for users. Don''t modify its structure as Hasura Auth relies on it to function properly.';
-
-  CALL after_create_table('auth.providers');
-
-  INSERT INTO auth.providers (id)
-  VALUES
-    ('github'),
-    ('facebook'),
-    ('twitter'),
-    ('google'),
-    ('apple'),
-    ('linkedin'),
-    ('windowslive'),
-    ('spotify'),
-    ('strava'),
-    ('gitlab'),
-    ('bitbucket'),
-    ('discord'),
-    ('twitch'),
-    ('workos'),
-    ('azuread')
-  ON CONFLICT DO NOTHING;
-COMMIT;
-
--- table auth.user_providers
-BEGIN;
-  CALL watch_create_table('auth.user_providers');
-
-  CREATE TABLE auth.user_providers (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    provider_id entity NOT NULL REFERENCES auth.providers(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    provider_user_id text NOT NULL,
-
-    access_token text NOT NULL,
-    refresh_token text,
-
-    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-     UNIQUE (user_id, provider_id),
-     UNIQUE (provider_id, provider_user_id)
-  );
-
-  COMMENT ON TABLE auth.user_providers
-  IS 'Active providers for a given user. Don''t modify its structure as Hasura Auth relies on it to function properly.';
-
-  CALL after_create_table('auth.user_providers');
-
-  CREATE OR REPLACE TRIGGER auth_user_providers_updated_at
-  BEFORE UPDATE ON auth.user_providers
-  FOR EACH ROW EXECUTE FUNCTION back.updated_at();
-COMMIT;
-
--- table auth.user_security_keys
-BEGIN;
-  CALL watch_create_table('auth.user_security_keys');
-
-  CREATE TABLE auth.user_security_keys (
+  CREATE TABLE auth.verifications (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
 
-    credential_id text NOT NULL UNIQUE,
-    credential_public_key bytea,
+    redirect_url TEXT DEFAULT '/',
+    token TEXT GENERATED ALWAYS AS (
+      replace(id::text, '-', '')
+    ) STORED,
 
-    counter bigint NOT NULL DEFAULT 0,
-    transports character varying(255) NOT NULL DEFAULT '',
-
-    nickname text
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+    verified_at timestamptz
   );
 
-  COMMENT ON TABLE auth.user_security_keys
-  IS 'User webauthn security keys. Don''t modify its structure as Hasura Auth relies on it to function properly.';
+  COMMENT ON TABLE auth.verifications
+  IS 'Stored verification chanlenges.';
 
-  CALL after_create_table('auth.user_security_keys');
+  CALL after_create_table('auth.verifications');
 COMMIT;
 
--- table auth.provider_requests
+-- table auth.verify_redirect(text)
+CREATE OR REPLACE FUNCTION auth.verify_redirect(token text)
+RETURNS TEXT AS $$
+WITH updated AS (
+  UPDATE auth.verifications
+    SET verified_at = current_timestamp
+  WHERE token = token
+    AND verified_at IS NULL
+  RETURNING redirect_url
+)
+SELECT redirect_url FROM updated;
+$$ LANGUAGE sql VOLATILE;
+
+-- table auth.keys
 BEGIN;
-  CALL watch_create_table('auth.provider_requests');
+  CALL watch_create_table('auth.keys');
 
-  CREATE TABLE auth.provider_requests (
-    id uuid PRIMARY KEY,
-    options jsonb
-  );
+  CREATE TABLE auth.keys (
+    sshkey TEXT NOT NULL,
+    nickname TEXT NOT NULL
+  ) INHERITS (auth.verifications);
 
-  COMMENT ON TABLE auth.provider_requests
-  IS 'Oauth requests, inserted before redirecting to the provider''s site. Don''t modify its structure as Hasura Auth relies on it to function properly.';
+  COMMENT ON TABLE auth.keys
+  IS 'User ssh keys.';
 
-  CALL after_create_table('auth.provider_requests');
+  CALL after_create_table('auth.keys');
 COMMIT;
 
--- table auth.refresh_token_types
+-- function auth.keys_user_id()
+CREATE OR REPLACE FUNCTION auth.keys_user_id()
+RETURNS TRIGGER AS $$
+DECLARE
+  email text;
+  user_id uuid;
+BEGIN
+  -- Extract the email from the SSH key
+  email := split_part(NEW.key, ' ', 2);
+
+  -- Look up the user_id based on the email
+  SELECT au.id
+  INTO user_id
+  FROM auth.users au
+  WHERE au.email = email;
+
+  -- Check if the user_id was found
+  IF user_id IS NULL THEN
+    RAISE EXCEPTION 'No user found with email %', email;
+  END IF;
+
+  -- Set the user_id in the NEW row
+  NEW.user_id := user_id;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger
+CREATE OR REPLACE TRIGGER auth_keys_set_user_id
+BEFORE INSERT ON auth.keys
+FOR EACH ROW
+EXECUTE FUNCTION auth.keys_user_id();
+
+-- table auth.tokens
 BEGIN;
-  CALL watch_create_table('auth.refresh_token_types');
+  CALL watch_create_table('auth.tokens');
 
-  CREATE TABLE auth.refresh_token_types (
-    value entity PRIMARY KEY,
-    comment text
-  );
-
-  CALL after_create_table('auth.refresh_token_types');
-
-  INSERT INTO auth.refresh_token_types (value, comment)
-  VALUES
-    ('regular', 'Regular refresh token'),
-    ('pat', 'Personal access token')
-  ON CONFLICT DO NOTHING;
-COMMIT;
-
--- table auth.refresh_tokens
-BEGIN;
-  CALL watch_create_table('auth.refresh_tokens');
-
-  CREATE TABLE auth.refresh_tokens (
+  CREATE TABLE auth.tokens (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
 
-    type entity NOT NULL DEFAULT 'regular' REFERENCES auth.refresh_token_types(value) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    type entity NOT NULL DEFAULT 'refresh',
     metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
-    refresh_token_hash character varying(255),
+    token_hash character varying(255),
 
     created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP + INTERVAL '4 months'
   );
 
-  CREATE INDEX refresh_tokens_hash_expires_at_user_id_idx
-  ON auth.refresh_tokens
-  USING btree (refresh_token_hash, expires_at, user_id);
-
-  CALL after_create_table('auth.refresh_tokens');
+  CALL after_create_table('auth.tokens');
 COMMIT;
 
 -- table auth.settings
@@ -409,16 +331,16 @@ CREATE OR REPLACE FUNCTION auth.hasura_jwt(
         'https://hasura.io/jwt/claims', json_build_object(
           'x-hasura-user-id', au.id,
           'x-hasura-default-role', au.default_role,
-          'x-hasura-allowed-roles', json_agg(aur.role)
+          'x-hasura-allowed-roles', json_agg(ap.role_name)
         )
       ),
       auth.setting('hasura.jwtsecret')
     ) AS jwt
   FROM auth.users au
-  JOIN auth.user_roles aur
-    ON (aur.user_id = au.id)
+  JOIN auth.permissions ap
+    ON (ap.user_id = au.id)
   WHERE au.id = user_id
-  GROUP BY au.id;
+  GROUP BY au.id, ap.role_name;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- function auth.hasura_chk
@@ -442,7 +364,7 @@ CREATE OR REPLACE FUNCTION auth.setup(
   password password
 ) RETURNS boolean AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.setup(phone, password)
 CREATE OR REPLACE FUNCTION auth.setup(
@@ -450,7 +372,7 @@ CREATE OR REPLACE FUNCTION auth.setup(
   password password
 ) RETURNS boolean AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.login(email, password)
 CREATE OR REPLACE FUNCTION auth.login(
@@ -458,7 +380,7 @@ CREATE OR REPLACE FUNCTION auth.login(
   password password
 ) RETURNS jwt AS $$
   SELECT '0.0.0'::jwt;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.login(phone, password)
 CREATE OR REPLACE FUNCTION auth.login(
@@ -466,34 +388,34 @@ CREATE OR REPLACE FUNCTION auth.login(
   password password
 ) RETURNS jwt AS $$
   SELECT '0.0.0'::jwt;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.login()
 CREATE OR REPLACE FUNCTION auth.login(
 ) RETURNS jwt AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.magic(email)
 CREATE OR REPLACE FUNCTION auth.magic(
   email email
 ) RETURNS boolean AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.magic(phone)
 CREATE OR REPLACE FUNCTION auth.magic(
   phone phone
 ) RETURNS boolean AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.token(token)
 CREATE OR REPLACE FUNCTION auth.token(
   token jwt
 ) RETURNS jwt AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.change(user_id, email)
 CREATE OR REPLACE FUNCTION auth.change(
@@ -501,7 +423,7 @@ CREATE OR REPLACE FUNCTION auth.change(
   email email
 ) RETURNS boolean AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.change(user_id, phone)
 CREATE OR REPLACE FUNCTION auth.change(
@@ -509,7 +431,7 @@ CREATE OR REPLACE FUNCTION auth.change(
   phone phone
 ) RETURNS boolean AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 -- function auth.change(user_id, password)
 CREATE OR REPLACE FUNCTION auth.change(
@@ -517,7 +439,7 @@ CREATE OR REPLACE FUNCTION auth.change(
   password password
 ) RETURNS boolean AS $$
   SELECT true;
-$$ LANGUAGE sql;
+$$ LANGUAGE sql VOLATILE;
 
 REVOKE ALL ON TABLE auth.settings FROM PUBLIC;
 REVOKE ALL ON TABLE auth.settings FROM "${RUNCORE_HASURA_USER}";

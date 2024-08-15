@@ -9,12 +9,12 @@ array_relationships:
         table:
           name: invitations
           schema: opts
-  - name: user_roles
+  - name: permissions
     using:
       foreign_key_constraint_on:
-        column: role
+        column: role_name
         table:
-          name: user_roles
+          name: permissions
           schema: auth
   - name: users
     using:
@@ -23,10 +23,65 @@ array_relationships:
         table:
           name: users
           schema: auth
-  - name: usersByRole
+  - name: usersByRoleName
     using:
       foreign_key_constraint_on:
-        column: role
+        column: role_name
         table:
           name: users
           schema: opts
+select_permissions:
+  - role: agent
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: anyone
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: clerk
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: coder
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: owner
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: paying
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: public
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: system
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""
+  - role: unpaid
+    permission:
+      columns:
+        - role
+      filter: {}
+    comment: ""

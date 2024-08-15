@@ -16,7 +16,7 @@ function help() {
 function console() {
   local url=""
 
-  runexec -it hasura bash -c '
+  runexec hasura bash -c '
     echo "version: 3" > config.yaml
 
     hasura-cli console \
@@ -24,16 +24,15 @@ function console() {
     --address ${RUNCORE_CONSOLE_DOMAIN} \
     --api-port 80 \
     --api-host http://${RUNCORE_CONSOLE_DOMAIN} \
-    --console-port 9695 \
     --endpoint http://hasura:8080 \
     --static-dir /srv/console-assets \
+    --console-port 9695 \
     --console-hge-endpoint http://${RUNCORE_CONSOLE_DOMAIN}
   ' | while IFS= read -r line; do
     if [ -z "$url" ]; then
       url=$(echo "$line" | sed -n 's/^.*\(http:\/\/[^:]*\).*$/\1/p')
 
-      [ -n "$url" ] && echo -e "Opening Console: $url/console"
-      [ -n "$url" ] && xdg-open "$url/console"
+      [ -n "$url" ] && echo -e "Console running at: $url/console"
       [ -z "$url" ] && echo "$line"
     fi
   done

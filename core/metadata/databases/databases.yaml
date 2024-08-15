@@ -6,5 +6,27 @@
         from_env: HASURA_GRAPHQL_DATABASE_URL
       isolation_level: read-committed
       use_prepared_statements: false
+  logical_models:
+    - fields:
+        - name: value
+          type:
+            nullable: true
+            scalar: boolean
+      name: boolean
+      select_permissions:
+        - permission:
+            columns:
+              - value
+            filter: {}
+          role: public
+  native_queries:
+    - arguments:
+        value:
+          description: ""
+          nullable: false
+          type: boolean
+      code: SELECT {{value}} AS value
+      returns: boolean
+      root_field_name: aaa
   tables: "!include runcore/tables/tables.yaml"
   functions: "!include runcore/functions/functions.yaml"

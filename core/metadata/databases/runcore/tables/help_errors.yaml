@@ -1,10 +1,10 @@
 table:
-  name: refresh_tokens
-  schema: auth
+  name: errors
+  schema: help
 object_relationships:
-  - name: refresh_token_type
+  - name: issue
     using:
-      foreign_key_constraint_on: type
+      foreign_key_constraint_on: issue_id
   - name: user
     using:
       foreign_key_constraint_on: user_id

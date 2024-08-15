@@ -13,6 +13,13 @@ array_relationships:
         table:
           name: comments
           schema: help
+  - name: errors
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: errors
+          schema: help
   - name: invitations
     using:
       foreign_key_constraint_on:
@@ -20,10 +27,10 @@ array_relationships:
         table:
           name: invitations
           schema: opts
-  - name: invitationsByOptsId
+  - name: invitationsByUserId
     using:
       foreign_key_constraint_on:
-        column: opts_id
+        column: user_id
         table:
           name: invitations
           schema: opts
@@ -34,20 +41,20 @@ array_relationships:
         table:
           name: issues
           schema: help
-  - name: preferences
-    using:
-      foreign_key_constraint_on:
-        column: opts_id
-        table:
-          name: preferences
-          schema: opts
-  - name: refresh_tokens
+  - name: permissions
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
-          name: refresh_tokens
+          name: permissions
           schema: auth
+  - name: preferences
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: preferences
+          schema: opts
   - name: signatures
     using:
       foreign_key_constraint_on:
@@ -55,31 +62,24 @@ array_relationships:
         table:
           name: signatures
           schema: sign
-  - name: user_providers
+  - name: tokens
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
-          name: user_providers
-          schema: auth
-  - name: user_roles
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: user_roles
-          schema: auth
-  - name: user_security_keys
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: user_security_keys
+          name: tokens
           schema: auth
   - name: users
     using:
       foreign_key_constraint_on:
-        column: opts_id
+        column: user_id
         table:
           name: users
           schema: opts
+  - name: verifications
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: verifications
+          schema: auth

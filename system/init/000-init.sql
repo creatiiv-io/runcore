@@ -4,11 +4,44 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- extension citext
 CREATE EXTENSION IF NOT EXISTS citext;
 
+-- initialize hasura user
+DO $$
+BEGIN
+  CREATE USER "${RUNCORE_HASURA_USER}" WITH
+    NOINHERIT
+    NOREPLICATION;
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'role "${RUNCORE_HASURA_USER}" already exists, skipping';
+END $$;
+
+-- change password for hasura user
+ALTER USER "${RUNCORE_HASURA_USER}"
+WITH PASSWORD '${RUNCORE_HASURA_PASSWORD}';
+
+-- make sure we lock down the hasura user
+REVOKE ALL PRIVILEGES ON DATABASE "${POSTGRES_DB}" FROM "${RUNCORE_HASURA_USER}";
+
+-- create hdb_catalog for migrations
+CREATE SCHEMA IF NOT EXISTS hdb_catalog AUTHORIZATION "${RUNCORE_HASURA_USER}";
+ALTER SCHEMA hdb_catalog OWNER TO "${RUNCORE_HASURA_USER}";
+
+-- hasura needs to interogate shemas
+GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO "${RUNCORE_HASURA_USER}";
+GRANT SELECT ON ALL TABLES IN SCHEMA pg_catalog TO "${RUNCORE_HASURA_USER}";
+
+-- give access to hasura user
+GRANT USAGE, CREATE ON SCHEMA public TO "${RUNCORE_HASURA_USER}";
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO "${RUNCORE_HASURA_USER}";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO "${RUNCORE_HASURA_USER}";
+
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
+
 -- domain datatype
 DO $$
 BEGIN
   CREATE DOMAIN datatype AS text
-    CONSTRAINT datatype_check CHECK (VALUE IN ('number','string','boolean'));
+    CONSTRAINT datatype CHECK (VALUE IN ('number','string','boolean'));
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "datatype" already exists, skipping';
 END $$;
@@ -116,17 +149,6 @@ EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "phone" already exists, skipping';
 END $$;
 
--- domain jwt
-DO $$
-BEGIN
-  CREATE DOMAIN jwt AS text
-    CONSTRAINT jwt_check CHECK (
-      VALUE ~* '^[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]$'
-    );
-EXCEPTION WHEN others THEN
-  RAISE NOTICE 'domain "jwt" already exists, skipping';
-END $$;
-
 -- domain entity
 DO $$
 BEGIN
@@ -143,6 +165,17 @@ BEGIN
     CONSTRAINT entity_scoped_check CHECK (VALUE ~ '^[a-z][a-z0-9_-]+[a-z](\.[a-z][a-z0-9_-]+[a-z0-9])?$');
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "entity_scoped" already exists, skipping';
+END $$;
+
+-- type jwt
+DO $$
+BEGIN
+  CREATE DOMAIN jwt AS text
+    CONSTRAINT jwt_check CHECK (
+      VALUE ~* '^[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]$'
+    );
+EXCEPTION WHEN others THEN
+  RAISE NOTICE 'type "jwt" already exists, skipping';
 END $$;
 
 -- domain shortcode
@@ -593,37 +626,6 @@ $$ LANGUAGE plpgsql;
 
 -- revoke permissions for everyone
 REVOKE ALL ON FUNCTION table_insert_order() FROM public;
-
--- initialize hasura user
-DO $$
-BEGIN
-  CREATE USER "${RUNCORE_HASURA_USER}" WITH
-    NOINHERIT
-    NOREPLICATION;
-EXCEPTION WHEN others THEN
-  RAISE NOTICE 'role "${RUNCORE_HASURA_USER}" already exists, skipping';
-END $$;
-
--- change password for hasura user
-ALTER USER "${RUNCORE_HASURA_USER}"
-WITH PASSWORD '${RUNCORE_HASURA_PASSWORD}';
-
--- make sure we lock down the hasura user
-REVOKE ALL PRIVILEGES ON DATABASE "${POSTGRES_DB}" FROM "${RUNCORE_HASURA_USER}";
-
--- create hdb_catalog for migrations
-CREATE SCHEMA IF NOT EXISTS hdb_catalog AUTHORIZATION "${RUNCORE_HASURA_USER}";
-ALTER SCHEMA hdb_catalog OWNER TO "${RUNCORE_HASURA_USER}";
-
--- hasura needs to interogate shemas
-GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO "${RUNCORE_HASURA_USER}";
-GRANT SELECT ON ALL TABLES IN SCHEMA pg_catalog TO "${RUNCORE_HASURA_USER}";
-
--- give access to hasura user
-GRANT USAGE ON SCHEMA public TO "${RUNCORE_HASURA_USER}";
-GRANT ALL ON ALL TABLES IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO "${RUNCORE_HASURA_USER}";
 
 -- initialize pgbouncer user
 DO $$

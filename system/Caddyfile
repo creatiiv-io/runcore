@@ -1,17 +1,39 @@
+(blank_errors) {
+	handle_errors {
+		@errors {
+			expression {http.error.status_code} >= 400 && {http.error.status_code} < 600
+		}
+
+		handle @errors {
+			respond {http.error.status_code} ""
+		}
+	}
+}
+
+(html_errors) {
+	handle_errors {
+		@errors {
+			expression {http.error.status_code} >= 400 && {http.error.status_code} < 600
+		}
+
+		handle @errors {
+			file_server {
+				root * /var/www/html
+				try_files /errors/{http.error.status_code}.html /errors/{http.error.status_code[0]}xx.html /errors/error.html
+			}
+		}
+	}
+}
+
 :80 {
-	root /usr/share/caddy
+	root * /usr/share/caddy
 	encode gzip
 	file_server
+	try_files {path} {path}/ /{dir}/catch.html /catch.html
 
 	route /admin* {
 		uri strip_prefix /admin
-		root admin
-		file_server
-	}
-
-	route /core* {
-		uri strip_prefix /core
-		root core
+		root * admin
 		file_server
 	}
 
@@ -52,12 +74,27 @@
 		reverse_proxy hasura:8080
 	}
 
+	route /apis/metadata* {
+		reverse_proxy hasura:80
+	}
+
 	route /apis/migrate* {
-		reverse_proxy hasura:9695
+		reverse_proxy hasura:80
 	}
 
 	route /files* {
 		rewrite /files/* /ipfs/*
 		reverse_proxy ipfs:8080
+	}
+
+	handle_errors {
+		@custom_err file /errors/{err.status_code}.html /errors/errors.html
+
+		handle @custom_err {
+			rewrite * {file_match.relative}
+			file_server
+		}
+
+		respond "{err.status_code} {err.status_text}"
 	}
 }

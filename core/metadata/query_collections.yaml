@@ -1,1 +1,17 @@
-[]
+- name: allowed-queries
+  definition:
+    queries:
+      - name: MyQuery
+        query: |
+          query MyQuery {
+            auth_roles {
+              role
+            }
+          }
+      - name: AAA
+        query: |
+          query AAA ($value: Boolean!) {
+            aaa(args: {value:$value}) {
+              value
+            }
+          }

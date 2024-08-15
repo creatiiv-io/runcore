@@ -76,7 +76,7 @@ BEGIN;
     email email NOT NULL,
 
     role_name entity NOT NULL REFERENCES auth.roles(role),
-    opts_id uuid REFERENCES auth.users(id),
+    user_id uuid REFERENCES auth.users(id),
 
     invited_by uuid REFERENCES auth.users(id),
 
@@ -94,12 +94,12 @@ BEGIN;
   CALL watch_create_table('opts.preferences');
 
   CREATE TABLE opts.preferences (
-    opts_id uuid NOT NULL REFERENCES auth.users(id),
+    user_id uuid NOT NULL REFERENCES auth.users(id),
     preference entity NOT NULL REFERENCES core.preferences(preference),
 
     value jsonvalue NOT NULL,
 
-    UNIQUE(opts_id, preference)
+    UNIQUE(user_id, preference)
   );
 
   COMMENT ON TABLE opts.preferences
@@ -140,11 +140,10 @@ BEGIN;
 
   CREATE TABLE opts.users (
     account_id uuid NOT NULL REFERENCES opts.accounts(id),
-    opts_id uuid NOT NULL REFERENCES auth.users(id),
+    user_id uuid NOT NULL REFERENCES auth.users(id),
+    role_name entity NOT NULL REFERENCES auth.roles(role),
 
-    role entity NOT NULL REFERENCES auth.roles(role),
-
-    UNIQUE (account_id, opts_id)
+    UNIQUE (account_id, user_id)
   );
 
   COMMENT ON TABLE opts.users

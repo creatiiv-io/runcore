@@ -19,6 +19,13 @@ array_relationships:
         table:
           name: comments
           schema: help
+  - name: errors
+    using:
+      foreign_key_constraint_on:
+        column: issue_id
+        table:
+          name: errors
+          schema: help
   - name: relates
     using:
       foreign_key_constraint_on:

@@ -21,7 +21,8 @@ function register() {
   # check if .secret.pub exists
   # if so
   # check for email in .secret.pub
-  # if not match email
+  # if no match email
+  # confirm the identity change
 }
 
 # run something
