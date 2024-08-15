@@ -19,14 +19,5 @@
               - value
             filter: {}
           role: public
-  native_queries:
-    - arguments:
-        value:
-          description: ""
-          nullable: false
-          type: boolean
-      code: SELECT {{value}} AS value
-      returns: boolean
-      root_field_name: aaa
   tables: "!include runcore/tables/tables.yaml"
   functions: "!include runcore/functions/functions.yaml"

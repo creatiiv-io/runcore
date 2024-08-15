@@ -83,7 +83,7 @@ BEGIN;
   CREATE TABLE auth.sessions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
-
+    login_method text NOT NULL,
     login_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
     logout_at timestamptz
   );

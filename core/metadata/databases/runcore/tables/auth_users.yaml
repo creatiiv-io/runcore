@@ -71,6 +71,13 @@ array_relationships:
         table:
           name: preferences
           schema: main
+  - name: sessions
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: sessions
+          schema: auth
   - name: signatures
     using:
       foreign_key_constraint_on:

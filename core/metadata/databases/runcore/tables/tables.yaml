@@ -1,6 +1,7 @@
 - "!include auth_keys.yaml"
 - "!include auth_permits.yaml"
 - "!include auth_roles.yaml"
+- "!include auth_sessions.yaml"
 - "!include auth_settings.yaml"
 - "!include auth_tokens.yaml"
 - "!include auth_users.yaml"
