@@ -1,6 +1,6 @@
 table:
   name: domains
-  schema: opts
+  schema: main
 object_relationships:
   - name: account
     using:

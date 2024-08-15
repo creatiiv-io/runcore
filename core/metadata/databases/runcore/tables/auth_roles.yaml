@@ -2,19 +2,26 @@ table:
   name: roles
   schema: auth
 array_relationships:
+  - name: agents
+    using:
+      foreign_key_constraint_on:
+        column: role_name
+        table:
+          name: agents
+          schema: main
   - name: invitations
     using:
       foreign_key_constraint_on:
         column: role_name
         table:
           name: invitations
-          schema: opts
-  - name: permissions
+          schema: main
+  - name: permits
     using:
       foreign_key_constraint_on:
         column: role_name
         table:
-          name: permissions
+          name: permits
           schema: auth
   - name: users
     using:
@@ -23,13 +30,6 @@ array_relationships:
         table:
           name: users
           schema: auth
-  - name: usersByRoleName
-    using:
-      foreign_key_constraint_on:
-        column: role_name
-        table:
-          name: users
-          schema: opts
 select_permissions:
   - role: agent
     permission:

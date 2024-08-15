@@ -2,10 +2,10 @@ table:
   name: forms
   schema: core
 array_relationships:
-  - name: configs
+  - name: derivations
     using:
       foreign_key_constraint_on:
-        column: form
+        column: form_name
         table:
           name: configs
-          schema: opts
+          schema: main

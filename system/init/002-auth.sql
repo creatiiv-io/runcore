@@ -19,7 +19,7 @@ BEGIN;
   COMMENT ON TABLE auth.roles
   IS 'Persistent Hasura roles for users.';
 
-  --CALL after_create_table('auth.roles');
+  CALL after_create_table('auth.roles');
 COMMIT;
 
 -- table auth.users
@@ -34,17 +34,16 @@ BEGIN;
     locale locale NOT NULL,
 
     email email UNIQUE,
-    phone_number phone UNIQUE,
-    password_hash text,
+    phone phone UNIQUE,
+    password text,
 
     email_verified boolean NOT NULL DEFAULT false,
-    phone_number_verified boolean NOT NULL DEFAULT false,
+    phone_verified boolean NOT NULL DEFAULT false,
   
     default_role entity NOT NULL DEFAULT '${RUNCORE_HASURA_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
 
     is_anonymous boolean NOT NULL DEFAULT false,
-    disabled boolean NOT NULL DEFAULT false,
-    last_seen timestamptz,
+    is_disabled boolean NOT NULL DEFAULT false,
 
     otp_method_last_used text,
     otp_hash text,
@@ -77,11 +76,29 @@ BEGIN;
   FOR EACH ROW EXECUTE FUNCTION back.updated_at();
 COMMIT;
 
--- table auth.permissions
+-- table auth.sessions
 BEGIN;
-  CALL watch_create_table('auth.permissions');
+  CALL watch_create_table('auth.sessions');
 
-  CREATE TABLE auth.permissions (
+  CREATE TABLE auth.sessions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+
+    login_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    logout_at timestamptz
+  );
+
+  COMMENT ON TABLE auth.sessions
+  IS 'Login sessions.';
+
+  CALL after_create_table('auth.sessions');
+COMMIT;
+
+-- table auth.permits
+BEGIN;
+  CALL watch_create_table('auth.permits');
+
+  CREATE TABLE auth.permits (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
     role_name entity NOT NULL REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -89,10 +106,10 @@ BEGIN;
     created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
-  COMMENT ON TABLE auth.permissions
-  IS 'Assigned permissions for a user.';
+  COMMENT ON TABLE auth.permits
+  IS 'Permit roles for a user.';
 
-  CALL after_create_table('auth.permissions');
+  CALL after_create_table('auth.permits');
 COMMIT;
 
 -- table auth.verifications
@@ -337,7 +354,7 @@ CREATE OR REPLACE FUNCTION auth.hasura_jwt(
       auth.setting('hasura.jwtsecret')
     ) AS jwt
   FROM auth.users au
-  JOIN auth.permissions ap
+  JOIN auth.permits ap
     ON (ap.user_id = au.id)
   WHERE au.id = user_id
   GROUP BY au.id, ap.role_name;

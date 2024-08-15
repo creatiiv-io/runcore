@@ -94,7 +94,7 @@ BEGIN;
   CALL watch_create_table('core.translations');
 
   CREATE TABLE core.translations (
-    language locale NOT NULL REFERENCES core.languages(code),
+    locale locale NOT NULL REFERENCES core.languages(code),
     identifier entity_scoped NOT NULL CHECK (position('.' IN identifier) != 0),
     category entity GENERATED ALWAYS AS (
       split_part(identifier, '.', 1)
@@ -105,7 +105,7 @@ BEGIN;
     translation text NOT NULL,
     description text,
 
-    PRIMARY KEY (language, identifier)
+    PRIMARY KEY (locale, identifier)
   );
 
   COMMENT ON TABLE core.translations
@@ -152,7 +152,7 @@ RETURNS jsonb AS $$
         )
       ) AS category_data
     FROM core.translations ct
-    WHERE ct.language = language
+    WHERE ct.locale = language
     GROUP BY category
   )
 SELECT jsonb_object_agg(category, category_data)

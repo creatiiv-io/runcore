@@ -2,9 +2,6 @@ table:
   name: activations
   schema: sale
 object_relationships:
-  - name: account
-    using:
-      foreign_key_constraint_on: account_id
   - name: codeByCode
     using:
       foreign_key_constraint_on: code

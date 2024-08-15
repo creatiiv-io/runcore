@@ -2,6 +2,6 @@ table:
   name: translations
   schema: core
 object_relationships:
-  - name: languageByLanguage
+  - name: language
     using:
-      foreign_key_constraint_on: language
+      foreign_key_constraint_on: locale

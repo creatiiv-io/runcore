@@ -8,7 +8,7 @@ array_relationships:
         column: locale
         table:
           name: accounts
-          schema: opts
+          schema: main
   - name: revisions
     using:
       foreign_key_constraint_on:
@@ -19,7 +19,7 @@ array_relationships:
   - name: translations
     using:
       foreign_key_constraint_on:
-        column: language
+        column: locale
         table:
           name: translations
           schema: core

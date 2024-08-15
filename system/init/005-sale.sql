@@ -117,7 +117,7 @@ BEGIN;
 
   CREATE TABLE sale.activations (
     code uuid PRIMARY KEY REFERENCES sale.codes(code),
-    account_id uuid NOT NULL REFERENCES opts.accounts(id),
+    account_id uuid NOT NULL REFERENCES main.accounts(id),
 
     activated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
@@ -135,7 +135,7 @@ BEGIN;
   CREATE TABLE sale.subscriptions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    account_id uuid NOT NULL REFERENCES opts.accounts(id),
+    account_id uuid NOT NULL REFERENCES main.accounts(id),
     plan entity_scoped NOT NULL REFERENCES sale.plans(plan),
 
     quantity smallint NOT NULL DEFAULT 1,
@@ -172,7 +172,7 @@ BEGIN;
     num int GENERATED ALWAYS AS IDENTITY,
 
     plan entity_scoped NOT NULL REFERENCES sale.plans(plan),
-    account_id uuid NOT NULL REFERENCES opts.accounts(id),
+    account_id uuid NOT NULL REFERENCES main.accounts(id),
 
     lines jsonb,
     amount numeric(9, 2) NOT NULL,

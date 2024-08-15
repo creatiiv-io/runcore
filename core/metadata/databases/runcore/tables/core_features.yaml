@@ -2,13 +2,6 @@ table:
   name: features
   schema: core
 array_relationships:
-  - name: features
-    using:
-      foreign_key_constraint_on:
-        column: feature
-        table:
-          name: features
-          schema: sale
   - name: preferences
     using:
       foreign_key_constraint_on:
@@ -23,6 +16,13 @@ array_relationships:
         table:
           name: requirements
           schema: sign
+  - name: sales
+    using:
+      foreign_key_constraint_on:
+        column: feature
+        table:
+          name: features
+          schema: sale
   - name: settings
     using:
       foreign_key_constraint_on:

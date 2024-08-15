@@ -6,6 +6,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: default_role
 array_relationships:
+  - name: agents
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: agents
+          schema: main
   - name: comments
     using:
       foreign_key_constraint_on:
@@ -23,17 +30,17 @@ array_relationships:
   - name: invitations
     using:
       foreign_key_constraint_on:
-        column: invited_by
-        table:
-          name: invitations
-          schema: opts
-  - name: invitationsByUserId
-    using:
-      foreign_key_constraint_on:
         column: user_id
         table:
           name: invitations
-          schema: opts
+          schema: main
+  - name: invited
+    using:
+      foreign_key_constraint_on:
+        column: invited_by
+        table:
+          name: invitations
+          schema: main
   - name: issues
     using:
       foreign_key_constraint_on:
@@ -41,12 +48,21 @@ array_relationships:
         table:
           name: issues
           schema: help
-  - name: permissions
+  - name: keys
+    using:
+      manual_configuration:
+        column_mapping:
+          id: user_id
+        insertion_order: null
+        remote_table:
+          name: keys
+          schema: auth
+  - name: permits
     using:
       foreign_key_constraint_on:
         column: user_id
         table:
-          name: permissions
+          name: permits
           schema: auth
   - name: preferences
     using:
@@ -54,7 +70,7 @@ array_relationships:
         column: user_id
         table:
           name: preferences
-          schema: opts
+          schema: main
   - name: signatures
     using:
       foreign_key_constraint_on:
@@ -69,13 +85,6 @@ array_relationships:
         table:
           name: tokens
           schema: auth
-  - name: users
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: users
-          schema: opts
   - name: verifications
     using:
       foreign_key_constraint_on:
@@ -83,3 +92,9 @@ array_relationships:
         table:
           name: verifications
           schema: auth
+computed_fields:
+  - name: translation
+    definition:
+      function:
+        name: users_translation
+        schema: main

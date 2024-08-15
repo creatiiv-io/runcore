@@ -2,14 +2,14 @@ table:
   name: settings
   schema: core
 object_relationships:
-  - name: featureByFeature
+  - name: from
     using:
       foreign_key_constraint_on: feature
 array_relationships:
-  - name: settings
+  - name: derivations
     using:
       foreign_key_constraint_on:
         column: setting
         table:
           name: settings
-          schema: opts
+          schema: main

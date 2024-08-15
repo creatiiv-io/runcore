@@ -1,10 +1,10 @@
 table:
-  name: settings
-  schema: opts
+  name: configs
+  schema: main
 object_relationships:
   - name: account
     using:
       foreign_key_constraint_on: account_id
-  - name: settingBySetting
+  - name: form
     using:
-      foreign_key_constraint_on: setting
+      foreign_key_constraint_on: form_name

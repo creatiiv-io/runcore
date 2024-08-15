@@ -1,8 +1,8 @@
 table:
   name: preferences
-  schema: opts
+  schema: main
 object_relationships:
-  - name: preferenceByPreference
+  - name: origin
     using:
       foreign_key_constraint_on: preference
   - name: user

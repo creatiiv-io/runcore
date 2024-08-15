@@ -11,7 +11,7 @@ BEGIN
     NOINHERIT
     NOREPLICATION;
 EXCEPTION WHEN others THEN
-  RAISE NOTICE 'role "${RUNCORE_HASURA_USER}" already exists, skipping';
+  RAISE NOTICE 'user "${RUNCORE_HASURA_USER}" already exists, skipping';
 END $$;
 
 -- change password for hasura user
@@ -167,7 +167,7 @@ EXCEPTION WHEN others THEN
   RAISE NOTICE 'domain "entity_scoped" already exists, skipping';
 END $$;
 
--- type jwt
+-- domain jwt
 DO $$
 BEGIN
   CREATE DOMAIN jwt AS text
@@ -175,7 +175,7 @@ BEGIN
       VALUE ~* '^[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]$'
     );
 EXCEPTION WHEN others THEN
-  RAISE NOTICE 'type "jwt" already exists, skipping';
+  RAISE NOTICE 'domain "jwt" already exists, skipping';
 END $$;
 
 -- domain shortcode
@@ -634,7 +634,7 @@ BEGIN
     NOINHERIT
     NOREPLICATION;
 EXCEPTION WHEN others THEN
-  RAISE NOTICE 'Role "${RUNCORE_PGBOUNCER_USER}" already exists';
+  RAISE NOTICE 'user "${RUNCORE_PGBOUNCER_USER}" already exists';
 END $$;
 
 -- change password for pgbouncer user
