@@ -81,6 +81,15 @@ http:// {
 	}
 
 	route /errors/* {
+		@not_error_page {
+			not {
+				path_regexp error_file ^/errors/\d{3}\.html$
+			}
+			path_regexp error_number ^/errors/(\d{3})
+		}
+
+		redir @not_error_page /errors/{http.regexp.error_number.1}.html
+
 		error /errors/400* 400
 		error /errors/401* 401
 		error /errors/402* 402
@@ -144,8 +153,17 @@ http:// {
 	}
 
 	handle_errors {
-		root * /usr/share/caddy
-		file_server
-		try_files /errors/{http.error.status_code}.html /error/errors.html
+		@error_file {
+			file /errors/{http.error.status_code}.html /errors/errors.html
+		}
+
+		handle @error_file {
+			root * /usr/share/caddy
+			templates
+			rewrite * {http.matchers.file.relative}
+			file_server
+		}
+
+		respond "{http.error.status_code} {http.error.status_text}"
 	}
 }
