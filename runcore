@@ -23,22 +23,24 @@ function cleanroom() {
   {
     # always run from git root
     echo cd '"'$GITROOT'"'
-    echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
 
     # set defaults, get settings, get overides
     toenvexport "${RUNCORE}/system/default.env"
     toenvexport "${RUNCORE}/system/default.settings"
     toenvexport "${GITROOT}/core/settings/default"
-    toenvexport "${SETTING}"
+    toenvexport "${GITROOT}/core/settings/${SETTING}"
+
+    echo -e "\n# BEGIN OVERIDES"
+    echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
+
     toenvexport "${GITROOT}/core/settings/override"
     toenvexport "${RUNCORE}/system/override.settings"
-    toenvexport "${RUNCORE}/system/override.env"
 
-    echo export CORE_SYSTEM='"'${RUNCORE}/system'"'
+    toenvexport "${RUNCORE}/system/override.env"
 
     # If input was piped, use it with the command, otherwise just run the command
     echo "$@ $([ -n "$input" ] && echo "< $input")"
-  } |  env -i bash
+  } | env -i bash
 
   # capture return code
   error=$?
@@ -342,6 +344,8 @@ function setting() {
 
 # convert settings export
 function toenvexport() {
+  echo -e "\n# file ${1}"
+
   if [[ "${1}" == *.env ]]; then
     [ -f "${1}" ] && cat "${1}" | sed 's/^/export /'
   else
@@ -352,7 +356,7 @@ function toenvexport() {
 # convert settings to env format
 function toenvfromsettings() {
   while IFS=':' read -r key value; do
-    echo "$(echo "$key" | tr 'a-z' 'A-Z' | sed -E 's/[^A-Z0-9]+/_/g')=$value"
+    echo "$(echo "$key" | tr 'a-z' 'A-Z' | sed -E 's/[^A-Z0-9]+/_/g')=\"$value\""
   done < "${1:-/dev/stdin}"
 }
 

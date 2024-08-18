@@ -31,7 +31,9 @@ function settings() {
   settings=$(savesettings "${settings:-default}" "$@")
 
   # show docker environent
-  if [ -z "$1" ]; then
+  if [ "$1" = env ]; then
+    cleanroom env | sed -E '/^(#|$)/d; /^(LETTERS|SETTING|SHLVL|PWD|OLDPWD|_)=/d' | sort
+  elif [ -z "$1" ]; then
     cleanroom env | sed -E '/^(#|$)/d; /^(LETTERS|SETTING|SHLVL|PWD|OLDPWD|_)=/d' | tosettingsfromenv | sort
   # show single settings
   elif [ -z "$2" ]; then

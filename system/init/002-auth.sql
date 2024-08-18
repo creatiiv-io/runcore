@@ -37,37 +37,42 @@ BEGIN;
     phone phone UNIQUE,
     password text,
 
-    email_verified boolean NOT NULL DEFAULT false,
-    phone_verified boolean NOT NULL DEFAULT false,
-  
-    default_role entity NOT NULL DEFAULT '${RUNCORE_HASURA_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+    new_email email, -- TODO: need to check if we have an account with this email already
+    new_phone phone, -- TODO: need to check if we have an account with this phone already
+    new_password phone,
+
+    default_role entity NOT NULL DEFAULT '${RUNCORE_LOGIN_DEFAULTROLE}' REFERENCES auth.roles(role) ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    is_verified_email boolean NOT NULL DEFAULT false,
+    is_verified_phone boolean NOT NULL DEFAULT false,
 
     is_anonymous boolean NOT NULL DEFAULT false,
     is_disabled boolean NOT NULL DEFAULT false,
 
-    otp_method_last_used text,
-    otp_hash text,
-    otp_hash_expires_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    totp_secret text,
-    active_mfa_type text,
-
-    ticket text,
-    ticket_expires_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     metadata jsonb,
-    new_email email,
-
-    webauthn_current_challenge text,
 
     created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamptz
   
-    CONSTRAINT active_mfa_types_check CHECK (((active_mfa_type = 'totp'::text) OR (active_mfa_type = 'sms'::text)))
+
+    -- maybe used
+    -- otp_method_last_used text,
+    -- otp_hash text,
+    -- otp_hash_expires_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- totp_secret text,
+    -- active_mfa_type text,
+
+    -- ticket text,
+    -- ticket_expires_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- webauthn_current_challenge text,
+
+    -- CONSTRAINT active_mfa_types_check CHECK (((active_mfa_type = 'totp'::text) OR (active_mfa_type = 'sms'::text)))
   );
 
   COMMENT ON TABLE auth.users
-  IS 'User account information. Don''t modify its structure as Hasura Auth relies on it to function properly.';
+  IS 'User account information.';
 
   CALL after_create_table('auth.users');
 
@@ -137,7 +142,7 @@ COMMIT;
 
 -- table auth.verify_redirect(text)
 CREATE OR REPLACE FUNCTION auth.verify_redirect(token text)
-RETURNS TEXT AS $$
+RETURNS text AS $$
 WITH updated AS (
   UPDATE auth.verifications
     SET verified_at = current_timestamp
@@ -233,7 +238,7 @@ BEGIN;
   INSERT INTO auth.settings(setting, value)
   VALUES
     ('hasura.jwtsecret','"${RUNCORE_HASURA_JWTSECRET}"'),
-    ('login.annonymous','${RUNCORE_LOGIN_ANNONYMOUS}'),
+    ('login.anonymous','${RUNCORE_LOGIN_ANONYMOUS}'),
     ('login.defaultlanguage','"${RUNCORE_LOGIN_DEFAULTLANGUAGE}"'),
     ('login.defaultrole','"${RUNCORE_LOGIN_DEFAULTROLE}"'),
     ('login.emailpassword','${RUNCORE_LOGIN_EMAILPASSWORD}'),
@@ -280,7 +285,7 @@ $$ LANGUAGE sql IMMUTABLE;
 CREATE OR REPLACE FUNCTION auth.hmac_sign(
   input text,
   secret text,
-  algorithm text
+  algorithm text DEFAULT 'HS256'
 ) RETURNS text AS $$
   SELECT auth.encode(
     hmac(
@@ -410,7 +415,8 @@ $$ LANGUAGE sql VOLATILE;
 -- function auth.login()
 CREATE OR REPLACE FUNCTION auth.login(
 ) RETURNS jwt AS $$
-  SELECT true;
+  -- create anonymous user
+  SELECT NULL::jwt;
 $$ LANGUAGE sql VOLATILE;
 
 -- function auth.magic(email)

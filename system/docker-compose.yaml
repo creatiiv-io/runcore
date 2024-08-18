@@ -5,10 +5,13 @@ services:
     restart: unless-stopped
     volumes:
       - ${CORE_PUBLIC}:/usr/share/caddy:ro
-      - ${CORE_SYSTEM}:/etc/caddy:ro
+      - ${CORE_SYSTEM}/admin:/etc/caddy/admin:ro
+      - ${CORE_CADDYFILE}:/etc/caddy/Caddyfile:ro
       - caddy_certs:/data
       - caddy_config:/config
     working_dir: /etc/caddy
+    environment:
+      RUNCORE_SERVERNAME: "${DEPLOY_SERVERNAME}"
   postgres:
     image: postgres:16-alpine
     restart: always
@@ -27,7 +30,7 @@ services:
       RUNCORE_HASURA_JWTSECRET: "${HASURA_JWTSECRET}"
       RUNCORE_HASURA_PASSWORD: "${HASURA_DBPASSWORD:-development}"
       RUNCORE_HASURA_USER: "${HASURA_DBUSERNAME:-hasura}"
-      RUNCORE_LOGIN_ANNONYMOUS: "${LOGIN_ANNONYMOUS}"
+      RUNCORE_LOGIN_ANONYMOUS: "${LOGIN_ANONYMOUS}"
       RUNCORE_LOGIN_DEFAULTLANGUAGE: "${LOGIN_DEFAULTLANGUAGE}"
       RUNCORE_LOGIN_DEFAULTROLE: "${LOGIN_DEFAULTROLE:-client}"
       RUNCORE_LOGIN_EMAILPASSWORD: "${LOGIN_EMAILPASSWORD}"

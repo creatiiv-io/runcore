@@ -2,35 +2,44 @@
   definition:
     query:
       collection_name: allowed-queries
-      query_name: Change
+      query_name: Auth Change
   methods:
     - POST
-  name: Change
-  url: change
+  name: Auth Change
+  url: auth/change
 - comment: ""
   definition:
     query:
       collection_name: allowed-queries
-      query_name: Login
+      query_name: Auth Login
   methods:
     - POST
-  name: Login
-  url: login
+  name: Auth Login
+  url: auth/login
 - comment: ""
   definition:
     query:
       collection_name: allowed-queries
-      query_name: Magic
+      query_name: Auth Magic
   methods:
     - POST
-  name: Magic
-  url: magic
+  name: Auth Magic
+  url: auth/magic
 - comment: ""
   definition:
     query:
       collection_name: allowed-queries
-      query_name: Setup
+      query_name: Auth Redirect
+  methods:
+    - GET
+  name: Auth Redirect
+  url: auth/redirect/:token
+- comment: ""
+  definition:
+    query:
+      collection_name: allowed-queries
+      query_name: Auth Setup
   methods:
     - POST
-  name: Setup
-  url: setup
+  name: Auth Setup
+  url: auth/setup

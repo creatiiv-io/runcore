@@ -8,6 +8,18 @@
       use_prepared_statements: false
   logical_models:
     - fields:
+        - name: redirect
+          type:
+            nullable: true
+            scalar: text
+      name: redirect
+      select_permissions:
+        - permission:
+            columns:
+              - redirect
+            filter: {}
+          role: public
+    - fields:
         - name: success
           type:
             nullable: false
@@ -124,6 +136,14 @@
         END AS success;
       returns: success
       root_field_name: auth_magic
+    - arguments:
+        token:
+          description: ""
+          nullable: false
+          type: text
+      code: SELECT NULL AS redirect WHERE {{token}} IS NOT NULL;
+      returns: redirect
+      root_field_name: auth_redirect
     - arguments:
         email:
           description: ""

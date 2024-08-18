@@ -1,39 +1,29 @@
-(blank_errors) {
-	handle_errors {
-		@errors {
-			expression {http.error.status_code} >= 400 && {http.error.status_code} < 600
-		}
-
-		handle @errors {
-			respond {http.error.status_code} ""
-		}
-	}
-}
-
-(html_errors) {
-	handle_errors {
-		@errors {
-			expression {http.error.status_code} >= 400 && {http.error.status_code} < 600
-		}
-
-		handle @errors {
-			file_server {
-				root * /var/www/html
-				try_files /errors/{http.error.status_code}.html /errors/{http.error.status_code[0]}xx.html /errors/error.html
-			}
-		}
-	}
-}
-
-:80 {
+http:// {
+	header Server "{$RUNCORE_SERVERNAME}"
 	root * /usr/share/caddy
-	encode gzip
 	file_server
 	try_files {path} {path}/ /{dir}/catch.html /catch.html
 
+	route /_/* {
+		uri strip_prefix /_/
+		vars token {uri}
+		templates
+		respond <<TEMPLATE
+			{{- $verify := printf "/v1/auth/redirect/%s" (placeholder "http.vars.token") | httpInclude | fromJson}}
+			{{- $url := index (first $verify.redirect) "url"}}
+			{{if $url}}
+			{{.RespHeader.Set "Location" $url}}
+			{{httpError 301}}
+			{{else}}
+			{{httpError 410}}
+			{{end}}
+			TEMPLATE
+	}
+
 	route /admin* {
 		uri strip_prefix /admin
-		root * admin
+		root * /etc/caddy/admin
+		templates
 		file_server
 	}
 
@@ -58,8 +48,10 @@
 	}
 
 	route /v1/* {
-		rewrite /v1/* /api/rest/*
+		uri strip_prefix /v1/
+		rewrite * /api/rest/{uri}
 		reverse_proxy hasura:8080
+		# if .* 403
 	}
 
 	route /v1alpha1/config {
@@ -71,6 +63,7 @@
 	}
 
 	route /api/* {
+		# /api/rest should redirect to v1/*
 		reverse_proxy hasura:8080
 	}
 
@@ -87,14 +80,72 @@
 		reverse_proxy ipfs:8080
 	}
 
+	route /errors/* {
+		error /errors/400* 400
+		error /errors/401* 401
+		error /errors/402* 402
+		error /errors/403* 403
+		error /errors/404* 404
+		error /errors/405* 405
+		error /errors/406* 406
+		error /errors/407* 407
+		error /errors/409* 409
+		error /errors/410* 410
+		error /errors/411* 411
+		error /errors/412* 412
+		error /errors/413* 413
+		error /errors/414* 414
+		error /errors/415* 415
+		error /errors/416* 416
+		error /errors/417* 417
+		error /errors/418* 418
+		error /errors/419* 419
+		error /errors/420* 420
+		error /errors/421* 421
+		error /errors/422* 422
+		error /errors/423* 423
+		error /errors/424* 424
+		error /errors/425* 425
+		error /errors/426* 426
+		error /errors/427* 427
+		error /errors/428* 428
+		error /errors/429* 429
+		error /errors/430* 430
+		error /errors/431* 431
+		error /errors/440* 440
+		error /errors/444* 444
+		error /errors/450* 450
+		error /errors/451* 451
+		error /errors/500* 500
+		error /errors/501* 501
+		error /errors/502* 502
+		error /errors/503* 503
+		error /errors/504* 504
+		error /errors/505* 505
+		error /errors/506* 506
+		error /errors/507* 507
+		error /errors/508* 508
+		error /errors/509* 509
+		error /errors/510* 510
+		error /errors/511* 511
+		error /errors/512* 512
+		error /errors/520* 520
+		error /errors/521* 521
+		error /errors/522* 522
+		error /errors/523* 523
+		error /errors/524* 524
+		error /errors/525* 525
+		error /errors/526* 526
+		error /errors/527* 527
+		error /errors/528* 528
+		error /errors/529* 529
+		error /errors/530* 530
+		error /errors/540* 540
+	}
+
 	handle_errors {
-		@custom_err file /errors/{err.status_code}.html /errors/errors.html
-
-		handle @custom_err {
-			rewrite * {file_match.relative}
-			file_server
-		}
-
-		respond "{err.status_code} {err.status_text}"
+		root * /usr/share/caddy
+		file_server
+		try_files /errors/{http.error.status_code}.html /error/errors.html
 	}
 }

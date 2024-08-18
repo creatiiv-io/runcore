@@ -1,31 +1,38 @@
 - name: allowed-queries
   definition:
     queries:
-      - name: Login
+      - name: Auth Change
+        query: |
+          query Change ($user_id: uuid!, $email: String, $phone: String, $password: String) {
+            auth_change(args: {user_id:$user_id,email:$email,phone:$phone,password:$password}) {
+              success
+            }
+          }
+      - name: Auth Login
         query: |
           query Login ($email: String, $phone: String, $password: String) {
             auth_login(args: {email:$email,phone:$phone,password:$password}) {
               token
             }
           }
-      - name: Setup
-        query: |
-          query Setup ($email: String, $phone: String, $password: String!) {
-            auth_setup(args: {email:$email,phone:$phone,password:$password}) {
-              success
-            }
-          }
-      - name: Magic
+      - name: Auth Magic
         query: |
           query Magic ($email: String, $phone: String) {
             auth_magic(args: {email:$email,phone:$phone}) {
               success
             }
           }
-      - name: Change
+      - name: Auth Redirect
         query: |
-          query Change ($user_id: uuid!, $email: String, $phone: String, $password: String) {
-            auth_change(args: {user_id:$user_id,email:$email,phone:$phone,password:$password}) {
+          query Redirect ($token: String!) {
+            redirect: auth_redirect(args: {token:$token}) {
+              url: redirect
+            }
+          }
+      - name: Auth Setup
+        query: |
+          query Setup ($email: String, $phone: String, $password: String!) {
+            auth_setup(args: {email:$email,phone:$phone,password:$password}) {
               success
             }
           }
